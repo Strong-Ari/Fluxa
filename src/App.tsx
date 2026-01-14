@@ -5,6 +5,7 @@ import VaultScreen from "./screens/VaultScreen";
 import PaymentRadar from "./screens/PaymentRadar";
 import TransactionInProgress from "./screens/TransactionInProgress";
 import PaymentReceipt from "./screens/PaymentReceipt";
+import { Breadcrumb, NavBar } from "./components/Navigation";
 
 type ScreenType = "dashboard" | "vault" | "radar" | "transaction" | "receipt";
 
@@ -21,29 +22,48 @@ export default function App() {
     amount: 0,
   });
 
-  // Initialize route from URL hash
+  // Initialize route from URL hash and listen for changes
   useEffect(() => {
-    const hash = window.location.hash.slice(1); // Remove the #
-    const screen = hash as ScreenType;
-    if (["dashboard", "vault", "radar", "transaction", "receipt"].includes(screen)) {
+    const updateScreenFromHash = () => {
+      const hash = window.location.hash.slice(1); // Remove the #
+
+      // Map hash routes to screen types
+      const routeMap: Record<string, ScreenType> = {
+        "": "dashboard",
+        "/": "dashboard",
+        "/dashboard": "dashboard",
+        "/vault": "vault",
+        "/radar": "radar",
+        "/transaction": "transaction",
+        "/receipt": "receipt",
+      };
+
+      const screen = routeMap[hash] || "dashboard";
       setCurrentScreen(screen);
-    }
+    };
+
+    updateScreenFromHash();
+    window.addEventListener("hashchange", updateScreenFromHash);
+    return () => window.removeEventListener("hashchange", updateScreenFromHash);
   }, []);
 
   const handleNavigate = (screen: ScreenType, data?: TransactionData) => {
     if (data) setTransactionData(data);
     setCurrentScreen(screen);
-    // Update URL
-    window.location.hash = screen;
+    // Update URL with proper hash route
+    window.location.hash = screen === "dashboard" ? "/" : `/${screen}`;
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-navy-deep via-space-dark to-space-dark">
+    <div className="min-h-screen pb-32 bg-gradient-to-br from-navy-deep via-space-dark to-space-dark overflow-x-hidden">
       {/* Animated background elements */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-0 w-96 h-96 bg-gold-royal rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-neon-green rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float" style={{ animationDelay: "2s" }}></div>
       </div>
+
+      {/* Breadcrumb Navigation */}
+      <Breadcrumb currentScreen={currentScreen} onNavigate={handleNavigate} />
 
       {/* Screen Container */}
       <div className="relative z-10">
@@ -66,6 +86,9 @@ export default function App() {
           <PaymentReceipt data={transactionData} onNavigate={handleNavigate} />
         )}
       </div>
+
+      {/* Bottom Navigation Bar */}
+      <NavBar currentScreen={currentScreen} onNavigate={handleNavigate} />
     </div>
   );
 }
