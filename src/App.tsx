@@ -1,51 +1,60 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import "./index.css";
+import Dashboard from "./screens/Dashboard";
+import VaultScreen from "./screens/VaultScreen";
+import PaymentRadar from "./screens/PaymentRadar";
+import TransactionInProgress from "./screens/TransactionInProgress";
+import PaymentReceipt from "./screens/PaymentReceipt";
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+type ScreenType = "dashboard" | "vault" | "radar" | "transaction" | "receipt";
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
-  return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
-  );
+interface TransactionData {
+  amount: number;
+  merchantName?: string;
+  merchantImage?: string;
+  transactionId?: string;
 }
 
-export default App;
+export default function App() {
+  const [currentScreen, setCurrentScreen] = useState<ScreenType>("dashboard");
+  const [transactionData, setTransactionData] = useState<TransactionData>({
+    amount: 0,
+  });
+
+  const handleNavigate = (screen: ScreenType, data?: TransactionData) => {
+    if (data) setTransactionData(data);
+    setCurrentScreen(screen);
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-navy-deep via-space-dark to-space-dark">
+      {/* Animated background elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-0 left-0 w-96 h-96 bg-gold-royal rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float"></div>
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-neon-green rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float" style={{ animationDelay: "2s" }}></div>
+      </div>
+
+      {/* Screen Container */}
+      <div className="relative z-10">
+        {currentScreen === "dashboard" && (
+          <Dashboard onNavigate={handleNavigate} />
+        )}
+        {currentScreen === "vault" && (
+          <VaultScreen onNavigate={handleNavigate} />
+        )}
+        {currentScreen === "radar" && (
+          <PaymentRadar onNavigate={handleNavigate} />
+        )}
+        {currentScreen === "transaction" && (
+          <TransactionInProgress
+            data={transactionData}
+            onNavigate={handleNavigate}
+          />
+        )}
+        {currentScreen === "receipt" && (
+          <PaymentReceipt data={transactionData} onNavigate={handleNavigate} />
+        )}
+      </div>
+    </div>
+  );
+}

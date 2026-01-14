@@ -1,0 +1,141 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  @apply font-inter;
+}
+
+body {
+  @apply bg-gradient-to-br from-navy-deep via-space-dark to-space-dark text-white;
+  background-attachment: fixed;
+}
+
+h1, h2, h3, h4, h5, h6, .tech-text {
+  @apply font-grotesk;
+}
+
+/* Glassmorphism Card */
+.glass-card {
+  @apply bg-glass-light backdrop-blur-glass border border-glass-border rounded-2xl;
+  backdrop-filter: blur(15px);
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.glass-card-alt {
+  @apply bg-glass-light backdrop-blur-glass border border-glass-border rounded-3xl;
+  backdrop-filter: blur(15px);
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Glowing Text */
+.text-glow {
+  @apply text-gold-royal;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+}
+
+.text-glow-neon {
+  @apply text-neon-green;
+  text-shadow: 0 0 10px rgba(57, 255, 20, 0.6);
+}
+
+/* Input Styles */
+input, textarea {
+  @apply bg-glass-light border border-glass-border rounded-lg text-white placeholder-gray-400 focus:outline-none focus:border-gold-royal focus:ring-1 focus:ring-gold-royal;
+}
+
+/* Button Styles */
+.btn-primary {
+  @apply bg-gold-royal text-space-dark font-semibold py-3 px-6 rounded-lg hover:shadow-glow transition-all duration-300 cursor-pointer;
+}
+
+.btn-primary:hover {
+  @apply scale-105;
+}
+
+.btn-secondary {
+  @apply bg-glass-light border border-gold-royal text-gold-royal font-semibold py-3 px-6 rounded-lg hover:bg-gold-royal hover:text-space-dark transition-all duration-300 cursor-pointer;
+}
+
+.btn-neon {
+  @apply bg-neon-green text-space-dark font-grotesk font-bold py-3 px-6 rounded-lg hover:shadow-neon transition-all duration-300 cursor-pointer;
+}
+
+/* Slider Styles */
+input[type="range"] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 8px;
+  border-radius: 5px;
+  background: linear-gradient(to right, #FFD700, #39FF14);
+  outline: none;
+  -webkit-slider-thumb-appearance: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #FFD700;
+  cursor: pointer;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #FFD700;
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  @apply relative inline-flex items-center h-8 w-14 bg-glass-light rounded-full cursor-pointer border border-glass-border transition-colors duration-300;
+}
+
+.toggle-switch.active {
+  @apply bg-neon-green;
+}
+
+.toggle-switch::after {
+  @apply absolute left-1 top-1 w-6 h-6 bg-white rounded-full transition-transform duration-300;
+  content: '';
+}
+
+.toggle-switch.active::after {
+  @apply translate-x-6;
+}
+
+/* Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-navy-deep bg-opacity-50;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-gold-royal rounded-lg;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-neon-green;
+}
+
+/* Utility Classes */
+.center {
+  @apply flex items-center justify-center;
+}
+
+.gap-glow {
+  gap: 0.5rem;
+  filter: drop-shadow(0 0 8px rgba(255, 215, 0, 0.3));
+}
