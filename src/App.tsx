@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./index.css";
 import Dashboard from "./screens/Dashboard";
 import VaultScreen from "./screens/VaultScreen";
@@ -21,9 +21,20 @@ export default function App() {
     amount: 0,
   });
 
+  // Initialize route from URL hash
+  useEffect(() => {
+    const hash = window.location.hash.slice(1); // Remove the #
+    const screen = hash as ScreenType;
+    if (["dashboard", "vault", "radar", "transaction", "receipt"].includes(screen)) {
+      setCurrentScreen(screen);
+    }
+  }, []);
+
   const handleNavigate = (screen: ScreenType, data?: TransactionData) => {
     if (data) setTransactionData(data);
     setCurrentScreen(screen);
+    // Update URL
+    window.location.hash = screen;
   };
 
   return (

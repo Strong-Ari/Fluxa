@@ -1,4 +1,4 @@
-// Type definitions for Kpay Offline app
+// Type definitions for Fluxa Offline app
 
 /**
  * Screen type enumeration

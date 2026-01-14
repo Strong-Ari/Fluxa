@@ -1,4 +1,4 @@
-# 🧾 Kpay Offline - Frontend Implementation
+# 🧾 Fluxa Offline - Frontend Implementation
 
 Une application de paiement décentralisée "Abidjan Cyber-Griot" conçue pour le Rust Africa Hackathon 2026.
 

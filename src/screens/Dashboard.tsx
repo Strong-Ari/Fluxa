@@ -12,7 +12,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6">
       {/* Header with Rust Security Indicator */}
-      <div className="absolute top-8 right-8 center gap-2">
+      <div className="absolute top-8 mt-8 right-8 center gap-2">
         <div className="animate-pulse">
           <div className="w-3 h-3 rounded-full bg-neon-green"></div>
         </div>
@@ -20,9 +20,9 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
       </div>
 
       {/* Title */}
-      <div className="text-center mb-12 mt-16">
+      <div className="text-center mb-12 mt-24">
         <h1 className="text-5xl font-grotesk font-bold text-white mb-2">
-          Kpay <span className="text-gold-royal">Offline</span>
+          Flu<span className="text-gold-royal">xa</span>
         </h1>
         <p className="text-gray-400 text-sm tracking-widest">PAIEMENT DÉCENTRALISÉ</p>
       </div>
@@ -49,7 +49,7 @@ export default function Dashboard({ onNavigate }: DashboardProps) {
                 {isCloudMode ? "Cloud Sync" : "Local Secure"}
               </p>
             </div>
-            <p className="text-xs text-gray-500">KPAY OFFLINE</p>
+            <p className="text-xs text-gray-500">Fluxa OFFLINE</p>
           </div>
         </div>
       </div>

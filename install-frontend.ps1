@@ -1,6 +1,6 @@
-# Installation script for Kpay Offline frontend dependencies (Windows)
+# Installation script for Fluxa Offline frontend dependencies (Windows)
 
-Write-Host "🚀 Installing Kpay Offline Frontend Dependencies..." -ForegroundColor Cyan
+Write-Host "🚀 Installing Fluxa Offline Frontend Dependencies..." -ForegroundColor Cyan
 Write-Host ""
 
 # Check if pnpm is installed

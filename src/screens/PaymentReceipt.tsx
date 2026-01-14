@@ -17,7 +17,7 @@ export default function PaymentReceipt({ data, onNavigate }: PaymentReceiptProps
 
   const handleShare = async () => {
     const receiptText = `
-🧾 REÇU DE PAIEMENT KPAY OFFLINE
+🧾 REÇU DE PAIEMENT Fluxa OFFLINE
 ═══════════════════════════════
 
 Montant: ${data.amount.toLocaleString()} FCFA
@@ -34,7 +34,7 @@ Powered by Rust Security Engine
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Reçu Kpay Offline",
+          title: "Reçu Fluxa Offline",
           text: receiptText,
         });
       } catch (err) {
@@ -69,7 +69,7 @@ Powered by Rust Security Engine
 
           {/* Receipt Header */}
           <div className="text-center border-b border-glass-border pb-6">
-            <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Kpay Offline</p>
+            <p className="text-xs text-gray-400 uppercase tracking-widest mb-2">Fluxa Offline</p>
             <div className="text-4xl mb-3">🧾</div>
             <p className="text-xs text-gray-500 font-mono">{data.transactionId}</p>
           </div>
@@ -173,7 +173,7 @@ Powered by Rust Security Engine
 
       {/* Support */}
       <div className="mt-8 text-center text-xs text-gray-500">
-        <p>Besoin d'aide? Contactez le support Kpay</p>
+        <p>Besoin d'aide? Contactez le support Fluxa</p>
       </div>
     </div>
   );

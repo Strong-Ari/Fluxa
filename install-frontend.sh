@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# Installation script for Kpay Offline frontend dependencies
+# Installation script for Fluxa Offline frontend dependencies
 
-echo "🚀 Installing Kpay Offline Frontend Dependencies..."
+echo "🚀 Installing Fluxa Offline Frontend Dependencies..."
 echo ""
 
 # Check if pnpm is installed
