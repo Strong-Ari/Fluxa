@@ -3,7 +3,7 @@
  * Routes: /#/dashboard, /#/vault, /#/radar, /#/transaction, /#/receipt
  */
 
-export type ScreenType = "dashboard" | "vault" | "radar" | "transaction" | "receipt";
+export type ScreenType = "dashboard" | "vault" | "radar" | "transaction" | "receipt" | "p2p";
 
 export const ROUTES = {
   dashboard: "/",
@@ -11,6 +11,7 @@ export const ROUTES = {
   radar: "/radar",
   transaction: "/transaction",
   receipt: "/receipt",
+  p2p: "/p2p",
 } as const;
 
 export const ROUTE_NAMES: Record<ScreenType, string> = {
@@ -19,6 +20,7 @@ export const ROUTE_NAMES: Record<ScreenType, string> = {
   radar: "Radar de Paiement",
   transaction: "Transaction en Cours",
   receipt: "Reçu de Paiement",
+  p2p: "Paiement P2P",
 };
 
 /**

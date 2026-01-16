@@ -7,7 +7,7 @@ interface NavBarProps {
 }
 
 export const NavBar: React.FC<NavBarProps> = ({ currentScreen, onNavigate }) => {
-  const screens: ScreenType[] = ["dashboard", "vault", "radar"];
+  const screens: ScreenType[] = ["dashboard", "vault", "radar", "p2p"];
   const { isOnline } = useOnlineStatusContext();
 
   return (
@@ -28,11 +28,13 @@ export const NavBar: React.FC<NavBarProps> = ({ currentScreen, onNavigate }) => 
               {screen === "dashboard" && "🏠"}
               {screen === "vault" && "🔐"}
               {screen === "radar" && "🎯"}
+              {screen === "p2p" && "💳"}
             </span>
             <span className="text-xs font-grotesk font-bold hidden sm:inline">
               {screen === "dashboard" && "Home"}
               {screen === "vault" && "Vault"}
               {screen === "radar" && "Radar"}
+              {screen === "p2p" && "P2P"}
             </span>
           </button>
         ))}

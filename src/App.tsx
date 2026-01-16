@@ -5,13 +5,14 @@ import VaultScreen from "./screens/VaultScreen";
 import PaymentRadar from "./screens/PaymentRadar";
 import TransactionInProgress from "./screens/TransactionInProgress";
 import PaymentReceipt from "./screens/PaymentReceipt";
+import P2PPaymentScreen from "./screens/P2PPaymentScreen";
 import { Breadcrumb, NavBar } from "./components/Navigation";
 import { NetworkStatusBanner } from "./components/NetworkStatusBanner";
 import { DebugNetworkStatus } from "./components/DebugNetworkStatus";
 import { WalletInitializer } from "./components/WalletInitializer";
 import { OnlineStatusProvider } from "./contexts/OnlineStatusContext";
 
-type ScreenType = "dashboard" | "vault" | "radar" | "transaction" | "receipt";
+type ScreenType = "dashboard" | "vault" | "radar" | "transaction" | "receipt" | "p2p";
 
 interface TransactionData {
   amount: number;
@@ -40,6 +41,7 @@ export default function App() {
         "/radar": "radar",
         "/transaction": "transaction",
         "/receipt": "receipt",
+        "/p2p": "p2p",
       };
 
       const screen = routeMap[hash] || "dashboard";
@@ -92,6 +94,9 @@ export default function App() {
             )}
             {currentScreen === "receipt" && (
               <PaymentReceipt data={transactionData} onNavigate={handleNavigate} />
+            )}
+            {currentScreen === "p2p" && (
+              <P2PPaymentScreen onNavigate={handleNavigate} />
             )}
           </div>
 

@@ -6,7 +6,7 @@ interface VaultScreenProps {
 }
 
 export default function VaultScreen({ onNavigate }: VaultScreenProps) {
-  const { wallet, transferToVault, transferFromVault, loading, error } = useRustWallet();
+  const { wallet, transferToVault, transferFromVault, error } = useRustWallet();
   const [selectedAmount, setSelectedAmount] = useState(5000);
   const [isProcessing, setIsProcessing] = useState(false);
   const [securityMessage, setSecurityMessage] = useState("");
