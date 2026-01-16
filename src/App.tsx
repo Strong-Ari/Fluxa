@@ -11,6 +11,8 @@ import { NetworkStatusBanner } from "./components/NetworkStatusBanner";
 import { DebugNetworkStatus } from "./components/DebugNetworkStatus";
 import { WalletInitializer } from "./components/WalletInitializer";
 import { OnlineStatusProvider } from "./contexts/OnlineStatusContext";
+import { useSwipeBack } from "./hooks/useSwipeBack";
+import { SwipeBackOverlay } from "./components/SwipeBackOverlay";
 
 type ScreenType = "dashboard" | "vault" | "radar" | "transaction" | "receipt" | "p2p";
 
@@ -25,6 +27,18 @@ export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>("dashboard");
   const [transactionData, setTransactionData] = useState<TransactionData>({
     amount: 0,
+  });
+
+  // Swipe back gesture
+  const { swipeProgress } = useSwipeBack({
+    threshold: 80,
+    velocityThreshold: 0.3,
+    onSwipeBack: () => {
+      // Go back to dashboard from any screen
+      if (currentScreen !== "dashboard") {
+        handleNavigate("dashboard");
+      }
+    },
   });
 
   // Initialize route from URL hash and listen for changes
@@ -65,6 +79,7 @@ export default function App() {
       <OnlineStatusProvider>
         <NetworkStatusBanner />
         <DebugNetworkStatus />
+        <SwipeBackOverlay progress={swipeProgress} />
         <div className="min-h-screen pb-32 bg-gradient-to-br from-navy-deep via-space-dark to-space-dark overflow-x-hidden">
           {/* Animated background elements */}
           <div className="fixed inset-0 overflow-hidden pointer-events-none">
