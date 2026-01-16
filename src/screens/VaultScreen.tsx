@@ -1,29 +1,42 @@
 import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useRustWallet } from "../hooks/useRustWallet";
 
 interface VaultScreenProps {
   onNavigate: (screen: string, data?: any) => void;
 }
 
 export default function VaultScreen({ onNavigate }: VaultScreenProps) {
+  const { wallet, transferToVault, loading, error } = useRustWallet();
   const [selectedAmount, setSelectedAmount] = useState(5000);
   const [isSecuring, setIsSecuring] = useState(false);
   const [securityMessage, setSecurityMessage] = useState("");
-  const maxAmount = 25000;
+
+  const maxAmount = wallet?.online_balance ?? 25000;
 
   const handleSecure = async () => {
+    if (selectedAmount <= 0 || selectedAmount > (wallet?.online_balance ?? 0)) {
+      setSecurityMessage("Montant invalide");
+      return;
+    }
+
     setIsSecuring(true);
     setSecurityMessage("Initialisation du coffre...");
 
     try {
-      // Simulate calling Rust backend
+      // Simulate progress
       await new Promise((resolve) => setTimeout(resolve, 800));
       setSecurityMessage("[1/3] Création de la clé Ed25519...");
 
       await new Promise((resolve) => setTimeout(resolve, 800));
       setSecurityMessage("[2/3] Chiffrement du portefeuille local...");
 
-      await new Promise((resolve) => setTimeout(resolve, 800));
+      // Call Rust backend
+      const success = await transferToVault(selectedAmount);
+
+      if (!success) {
+        throw new Error("Transfer failed");
+      }
+
       setSecurityMessage("[3/3] Synchronisation complète!");
 
       // Trigger haptic feedback if available
@@ -35,9 +48,9 @@ export default function VaultScreen({ onNavigate }: VaultScreenProps) {
       await new Promise((resolve) => setTimeout(resolve, 1500));
       setIsSecuring(false);
       onNavigate("dashboard");
-    } catch (error) {
-      console.error("Erreur de sécurisation:", error);
-      setSecurityMessage("Erreur: Veuillez réessayer");
+    } catch (err) {
+      console.error("Erreur de sécurisation:", err);
+      setSecurityMessage(error || "Erreur: Veuillez réessayer");
       setIsSecuring(false);
     }
   };
