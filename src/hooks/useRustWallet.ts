@@ -139,8 +139,8 @@ export const useRustWallet = () => {
         setError(null);
 
         const res = await invoke<ApiResponse<TransactionData>>("create_offline_transaction", {
-          to_wallet_id: toWalletId,
-          merchant_name: merchantName,
+          toWalletId: toWalletId,
+          merchantName: merchantName,
           amount,
         });
 

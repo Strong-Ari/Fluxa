@@ -41,7 +41,7 @@ export async function initiateTransaction(
   payload: TransactionPayload
 ): Promise<{ transactionId: string; signature: string }> {
   try {
-    return await invoke("create_transaction", payload);
+    return await invoke("create_transaction", { payload } as any);
   } catch (error) {
     console.error("Error creating transaction:", error);
     throw error;

@@ -1,16 +1,16 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
+import { invoke } from "@tauri-apps/api/core";
 
 export interface BluetoothDevice {
   id: string;
   name: string;
-  rssi: number; // Signal strength
-  connected: boolean;
+  rssi: number;
 }
 
 export interface P2PTransaction {
   id: string;
-  senderWalletId: string;
-  receiverWalletId: string;
+  sender_wallet_id: string;
+  receiver_wallet_id: string;
   amount: number;
   signature: string;
   timestamp: string;
@@ -18,10 +18,9 @@ export interface P2PTransaction {
 }
 
 /**
- * Hook pour gérer la communication Bluetooth/NFC
- * - Découverte d'appareils
- * - Connexion/déconnexion
- * - Envoi/réception de transactions
+ * Hook pour gérer NFC et Bluetooth via Rust backend
+ * - NFC: Les vrais tag writes/reads se font via tauri-plugin-nfc côté frontend
+ * - Bluetooth: Utilise les commandes Rust BLE
  */
 export const useBluetoothNFC = () => {
   const [devices, setDevices] = useState<BluetoothDevice[]>([]);
@@ -29,151 +28,247 @@ export const useBluetoothNFC = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [receivedTransaction, setReceivedTransaction] = useState<P2PTransaction | null>(null);
+  const [nfcAvailable, setNfcAvailable] = useState(false);
+  const [nfcScanning, setNfcScanning] = useState(false);
 
-  // Simuler la découverte d'appareils Bluetooth (en production: utiliser react-native-ble-plx)
-  const startScan = useCallback(async () => {
+  // ========== NFC FUNCTIONS ==========
+
+  // Vérifier si NFC est disponible
+  const checkNfcAvailability = useCallback(async () => {
+    try {
+      const result = await invoke<any>("nfc_is_available");
+      const isAvailable = result.data ?? result.success ?? false;
+      setNfcAvailable(isAvailable);
+      return isAvailable;
+    } catch (err) {
+      console.warn("NFC non disponible:", err);
+      setNfcAvailable(false);
+      return false;
+    }
+  }, []);
+
+  // Envoyer via NFC (préparer et écrire sur tag)
+  const sendTransactionNFC = useCallback(
+    async (receiverId: string, amount: number) => {
+      setError(null);
+
+      try {
+        // 1. Préparer la transaction via Rust backend
+        const prepareResult = await invoke<any>("nfc_send_transaction", {
+          receiver_id: receiverId,
+          amount,
+        });
+
+        if (!prepareResult.success) {
+          throw new Error(prepareResult.error || "Failed to prepare NFC transaction");
+        }
+
+        // 2. Écrire sur le tag NFC via le plugin réel
+        // NOTE: Cette partie nécessite l'utilisation directe du plugin dans le composant
+        // car les APIs de tauri-plugin-nfc ne sont pas disponibles au niveau du hook
+        setNfcScanning(true);
+
+        // Pour maintenant, simuler l'écriture
+        const payload = {
+          receiverId,
+          amount,
+          timestamp: new Date().toISOString(),
+          type: "fluxa_payment",
+        };
+
+        console.log("NFC Payload prepared:", payload);
+
+        setNfcScanning(false);
+        return {
+          success: true,
+          message: `Transaction ${amount} FCFA prête pour NFC à ${receiverId}`,
+          payload,
+        };
+      } catch (err) {
+        setError(String(err));
+        setNfcScanning(false);
+        console.error("NFC Send Error:", err);
+        return {
+          success: false,
+          message: String(err),
+        };
+      }
+    },
+    []
+  );
+
+  // Recevoir via NFC (lire depuis tag)
+  const receiveTransactionNFC = useCallback(async () => {
+    setError(null);
+    setNfcScanning(true);
+
+    try {
+      // Appeler le backend pour valider et recevoir la transaction
+      const result = await invoke<any>("nfc_receive_transaction");
+
+      if (result.success && result.data) {
+        setReceivedTransaction(result.data);
+        setNfcScanning(false);
+        return {
+          success: true,
+          data: result.data,
+          message: `Paiement reçu: ${result.data.amount} FCFA de ${result.data.sender_wallet_id}`,
+        };
+      }
+
+      setNfcScanning(false);
+      throw new Error("Aucune transaction trouvée sur le tag");
+    } catch (err) {
+      setError(String(err));
+      setNfcScanning(false);
+      console.error("NFC Receive Error:", err);
+      return {
+        success: false,
+        message: String(err),
+      };
+    }
+  }, []);
+
+  // ========== BLUETOOTH FUNCTIONS ==========
+
+  // Scanner les appareils Bluetooth
+  const startBluetoothScan = useCallback(async () => {
     setIsScanning(true);
     setError(null);
     setDevices([]);
 
     try {
-      // Vérifier si Bluetooth Web API est disponible
-      if (!("bluetooth" in navigator)) {
-        // Mode Web - simuler des appareils
-        await new Promise((resolve) => setTimeout(resolve, 1500));
-        const simulatedDevices: BluetoothDevice[] = [
-          { id: "device_001", name: "📱 Téléphone d'Amenan", rssi: -45, connected: false },
-          { id: "device_002", name: "📱 iPhone de Kofi", rssi: -62, connected: false },
-          { id: "device_003", name: "📱 Samsung d'Ama", rssi: -75, connected: false },
-        ];
-        setDevices(simulatedDevices);
+      // Utiliser le scan Rust backend
+      const result = await invoke<any>("bluetooth_scan_devices");
+
+      if (result.success && result.data) {
+        setDevices(result.data);
         setIsScanning(false);
-        return;
+        return result.data;
       }
 
-      // Mode natif (Tauri mobile) - utiliser Web Bluetooth API
-      const device = await (navigator.bluetooth as any).requestDevice({
-        acceptAllDevices: true,
-        optionalServices: ["fluxa-payment-service"],
-      });
-
-      if (device) {
-        setDevices([
-          {
-            id: device.id,
-            name: device.name || "Appareil inconnu",
-            rssi: -50,
-            connected: false,
-          },
-        ]);
-      }
-    } catch (err: any) {
-      if (err.name !== "NotAllowedError") {
-        setError(err.message || "Erreur lors de la découverte des appareils");
-      }
-    } finally {
+      throw new Error(result.error || "Bluetooth scan failed");
+    } catch (err) {
+      setError(String(err));
       setIsScanning(false);
+      console.error("Bluetooth Scan Error:", err);
+      return [];
     }
   }, []);
 
-  // Connecter à un appareil
-  const connectDevice = useCallback(async (device: BluetoothDevice) => {
+  // Connecter à un appareil Bluetooth
+  const connectBluetoothDevice = useCallback(async (device: BluetoothDevice) => {
     setError(null);
 
     try {
-      // Simuler la connexion (500ms)
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setConnectedDevice(device);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de la connexion");
-      setConnectedDevice(null);
-    }
-  }, []);
+      const result = await invoke<any>("bluetooth_connect", {
+        deviceId: device.id,
+      });
 
-  // Déconnecter de l'appareil
-  const disconnectDevice = useCallback(async () => {
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setConnectedDevice(null);
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de la déconnexion");
-    }
-  }, []);
-
-  // Envoyer une transaction via Bluetooth/NFC
-  const sendTransaction = useCallback(
-    async (tx: P2PTransaction) => {
-      if (!connectedDevice) {
-        setError("Aucun appareil connecté");
-        return false;
+      if (result.success) {
+        setConnectedDevice(device);
+        return {
+          success: true,
+          message: `Connecté à ${device.name}`,
+        };
       }
 
+      throw new Error(result.error || "Connection failed");
+    } catch (err) {
+      setError(String(err));
+      console.error("Bluetooth Connect Error:", err);
+      return {
+        success: false,
+        message: String(err),
+      };
+    }
+  }, []);
+
+  // Déconnecter du Bluetooth
+  const disconnectDevice = useCallback(async () => {
+    setConnectedDevice(null);
+    setError(null);
+    return {
+      success: true,
+      message: "Déconnecté",
+    };
+  }, []);
+
+  // Envoyer via Bluetooth
+  const sendTransactionBluetooth = useCallback(
+    async (receiverId: string, amount: number) => {
+      if (!connectedDevice) {
+        setError("Aucun appareil connecté");
+        return {
+          success: false,
+          message: "Connectez d'abord un appareil Bluetooth",
+        };
+      }
+
+      setError(null);
+
       try {
-        // Simuler l'envoi (1s pour représenter la transmission BLE)
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        const result = await invoke<any>("bluetooth_send_transaction", {
+          deviceId: connectedDevice.id,
+          receiverId: receiverId,
+          amount,
+        });
 
-        // En production: envoyer via caracteristique GATT
-        console.log(`📤 Transaction envoyée à ${connectedDevice.name}:`, tx);
+        if (result.success) {
+          return {
+            success: true,
+            message: `Transaction ${amount} FCFA envoyée à ${connectedDevice.name}`,
+          };
+        }
 
-        return true;
-      } catch (err: any) {
-        setError(err.message || "Erreur lors de l'envoi");
-        return false;
+        throw new Error(result.error || "Failed to send transaction");
+      } catch (err) {
+        setError(String(err));
+        console.error("Bluetooth Send Error:", err);
+        return {
+          success: false,
+          message: String(err),
+        };
       }
     },
     [connectedDevice]
   );
 
-  // Recevoir une transaction (simulé)
-  const receiveTransaction = useCallback(() => {
-    const mockTx: P2PTransaction = {
-      id: `tx_${Date.now()}`,
-      senderWalletId: "wallet_remote",
-      receiverWalletId: "wallet_local",
-      amount: 2500,
-      signature:
-        "sig_mockshaBitwise1234567890abcdefghijklmnopqrstuvwxyz0123456789",
-      timestamp: new Date().toISOString(),
-      status: "pending",
-    };
-    setReceivedTransaction(mockTx);
-  }, []);
-
   // Accepter une transaction reçue
   const acceptTransaction = useCallback(async () => {
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setReceivedTransaction(null);
-      return true;
-    } catch (err: any) {
-      setError(err.message || "Erreur lors de l'acceptation");
-      return false;
+    if (!receivedTransaction) {
+      return {
+        success: false,
+        message: "Aucune transaction à accepter",
+      };
     }
-  }, []);
+
+    setError(null);
+    try {
+      // Mettre à jour le solde via le hook wallet
+      return {
+        success: true,
+        message: "Transaction acceptée",
+        transaction: receivedTransaction,
+      };
+    } catch (err) {
+      setError(String(err));
+      return {
+        success: false,
+        message: String(err),
+      };
+    }
+  }, [receivedTransaction]);
 
   // Rejeter une transaction reçue
   const rejectTransaction = useCallback(async () => {
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setReceivedTransaction(null);
-      return true;
-    } catch (err: any) {
-      setError(err.message || "Erreur lors du rejet");
-      return false;
-    }
+    setReceivedTransaction(null);
+    setError(null);
+    return {
+      success: true,
+      message: "Transaction rejetée",
+    };
   }, []);
-
-  // Simuler la réception périodique (en mode demo)
-  useEffect(() => {
-    const demoReceiveTimer = setInterval(() => {
-      // 20% chance de recevoir une transaction si pas déjà en attente
-      if (!receivedTransaction && Math.random() < 0.2) {
-        // receiveTransaction(); // Décommentez pour mode demo continu
-      }
-    }, 5000);
-
-    return () => clearInterval(demoReceiveTimer);
-  }, [receivedTransaction]);
 
   return {
     // État
@@ -182,13 +277,21 @@ export const useBluetoothNFC = () => {
     isScanning,
     error,
     receivedTransaction,
+    nfcAvailable,
+    nfcScanning,
 
-    // Actions
-    startScan,
-    connectDevice,
+    // Fonctions NFC
+    checkNfcAvailability,
+    sendTransactionNFC,
+    receiveTransactionNFC,
+
+    // Fonctions Bluetooth
+    startBluetoothScan,
+    connectBluetoothDevice,
     disconnectDevice,
-    sendTransaction,
-    receiveTransaction,
+    sendTransactionBluetooth,
+
+    // Fonctions communes
     acceptTransaction,
     rejectTransaction,
   };

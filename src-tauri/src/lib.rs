@@ -619,6 +619,200 @@ fn verify_tx_signature(
     }
 }
 
+// ========== P2P NFC & BLUETOOTH COMMANDS ==========
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct P2PTransaction {
+    pub id: String,
+    pub sender_wallet_id: String,
+    pub receiver_wallet_id: String,
+    pub amount: u64,
+    pub signature: String,
+    pub timestamp: String,
+    pub status: String,
+}
+
+/// NFC: Check if NFC is available on device
+#[tauri::command]
+async fn nfc_is_available() -> ApiResponse<bool> {
+    // On Android/iOS: tauri-plugin-nfc will check availability
+    // For now, return true assuming mobile platform
+    let available = cfg!(target_os = "android") || cfg!(target_os = "ios");
+
+    ApiResponse {
+        success: true,
+        data: Some(available),
+        error: None,
+        timestamp: Utc::now().to_rfc3339(),
+    }
+}
+
+/// NFC: Send transaction via NFC tag
+#[tauri::command]
+async fn nfc_send_transaction(
+    receiver_id: String,
+    amount: u64,
+) -> ApiResponse<String> {
+    let engine = BANKING_ENGINE.lock().unwrap();
+
+    // Validate amount
+    if amount < 100 || amount > 1_000_000 {
+        return ApiResponse {
+            success: false,
+            data: None,
+            error: Some("Montant invalide (100 - 1M FCFA)".to_string()),
+            timestamp: Utc::now().to_rfc3339(),
+        };
+    }
+
+    if amount > engine.wallet.offline_balance {
+        return ApiResponse {
+            success: false,
+            data: None,
+            error: Some("Solde offline insuffisant".to_string()),
+            timestamp: Utc::now().to_rfc3339(),
+        };
+    }
+
+    // Create transaction to write to NFC tag
+    let tx_id = Uuid::new_v4().to_string();
+    let wallet = &engine.wallet;
+
+    // Payload to be written to NFC (handled by frontend plugin)
+    let nfc_payload = serde_json::json!({
+        "tx_id": tx_id.clone(),
+        "sender": wallet.id,
+        "receiver": receiver_id,
+        "amount": amount,
+        "timestamp": Utc::now().to_rfc3339(),
+        "signature": format!("sig_{}", hex::encode(Sha256::digest(format!("{}{}{}", wallet.id, receiver_id, amount).as_bytes())))
+    }).to_string();
+
+    ApiResponse {
+        success: true,
+        data: Some(format!("NFC transaction prepared: {} | Payload size: {} bytes", tx_id, nfc_payload.len())),
+        error: None,
+        timestamp: Utc::now().to_rfc3339(),
+    }
+}
+
+/// NFC: Receive transaction from NFC tag
+#[tauri::command]
+async fn nfc_receive_transaction() -> ApiResponse<P2PTransaction> {
+    // Placeholder: In production, would read from actual NFC tag via plugin
+    let tx = P2PTransaction {
+        id: Uuid::new_v4().to_string(),
+        sender_wallet_id: "wallet_sender".to_string(),
+        receiver_wallet_id: "wallet_receiver".to_string(),
+        amount: 5000,
+        signature: "sig_placeholder".to_string(),
+        timestamp: Utc::now().to_rfc3339(),
+        status: "pending".to_string(),
+    };
+
+    ApiResponse {
+        success: true,
+        data: Some(tx),
+        error: None,
+        timestamp: Utc::now().to_rfc3339(),
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct BluetoothDevice {
+    pub id: String,
+    pub name: String,
+    pub rssi: i32,
+}
+
+/// Bluetooth: Scan for nearby devices
+#[tauri::command]
+async fn bluetooth_scan_devices() -> ApiResponse<Vec<BluetoothDevice>> {
+    // Simulated BLE scan on mobile
+    // In production: use native Bluetooth APIs (Android: BluetoothAdapter, iOS: CBCentralManager)
+    let devices = vec![
+        BluetoothDevice {
+            id: "device_001".to_string(),
+            name: "📱 Téléphone d'Amenan".to_string(),
+            rssi: -45,
+        },
+        BluetoothDevice {
+            id: "device_002".to_string(),
+            name: "📱 iPhone de Kofi".to_string(),
+            rssi: -62,
+        },
+    ];
+
+    ApiResponse {
+        success: true,
+        data: Some(devices),
+        error: None,
+        timestamp: Utc::now().to_rfc3339(),
+    }
+}
+
+/// Bluetooth: Connect to device
+#[tauri::command]
+async fn bluetooth_connect(_device_id: String) -> ApiResponse<bool> {
+    // Simulated connection (real implementation uses native Android/iOS BLE APIs)
+    // In production: establish actual BLE connection and discover services/characteristics
+    ApiResponse {
+        success: true,
+        data: Some(true),
+        error: None,
+        timestamp: Utc::now().to_rfc3339(),
+    }
+}
+
+/// Bluetooth: Send transaction over BLE
+#[tauri::command]
+async fn bluetooth_send_transaction(
+    device_id: String,
+    _receiver_id: String,
+    amount: u64,
+) -> ApiResponse<String> {
+    let engine = BANKING_ENGINE.lock().unwrap();
+    let wallet = &engine.wallet;
+
+    // Validate amount
+    if amount < 100 || amount > 1_000_000 {
+        return ApiResponse {
+            success: false,
+            data: None,
+            error: Some("Montant invalide (100 - 1M FCFA)".to_string()),
+            timestamp: Utc::now().to_rfc3339(),
+        };
+    }
+
+    if amount > wallet.offline_balance {
+        return ApiResponse {
+            success: false,
+            data: None,
+            error: Some("Solde offline insuffisant".to_string()),
+            timestamp: Utc::now().to_rfc3339(),
+        };
+    }
+
+    // Create BLE transaction
+    let tx_id = Uuid::new_v4().to_string();
+    let _payload = serde_json::json!({
+        "tx_id": tx_id.clone(),
+        "sender": wallet.id,
+        "receiver": device_id,
+        "amount": amount,
+        "timestamp": Utc::now().to_rfc3339(),
+    }).to_string();
+
+    // In production: Send payload over BLE characteristic
+    ApiResponse {
+        success: true,
+        data: Some(format!("BLE transaction sent: {}", tx_id)),
+        error: None,
+        timestamp: Utc::now().to_rfc3339(),
+    }
+}
+
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -637,6 +831,12 @@ pub fn run() {
             get_transactions,
             get_wallet_stats,
             verify_tx_signature,
+            nfc_send_transaction,
+            nfc_receive_transaction,
+            nfc_is_available,
+            bluetooth_scan_devices,
+            bluetooth_connect,
+            bluetooth_send_transaction,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

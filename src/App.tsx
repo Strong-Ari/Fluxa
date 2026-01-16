@@ -53,9 +53,9 @@ export default function App() {
     return () => window.removeEventListener("hashchange", updateScreenFromHash);
   }, []);
 
-  const handleNavigate = (screen: ScreenType, data?: TransactionData) => {
+  const handleNavigate = (screen: string, data?: TransactionData) => {
     if (data) setTransactionData(data);
-    setCurrentScreen(screen);
+    setCurrentScreen(screen as ScreenType);
     // Update URL with proper hash route
     window.location.hash = screen === "dashboard" ? "/" : `/${screen}`;
   };

@@ -1,37 +1,61 @@
 import { useState } from "react";
 import { useRustWallet } from "../hooks/useRustWallet";
-import { useBluetoothNFC, type BluetoothDevice, type P2PTransaction } from "../hooks/useBluetoothNFC";
+import { useBluetoothNFC, type BluetoothDevice } from "../hooks/useBluetoothNFC";
 
 interface P2PPaymentScreenProps {
   onNavigate: (screen: string, data?: any) => void;
 }
 
+type TransportMode = "bluetooth" | "nfc";
+
 export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) {
   const { wallet, createOfflineTransaction, confirmTransaction } = useRustWallet();
   const {
+    nfcAvailable,
     devices,
     connectedDevice,
     isScanning,
     error,
     receivedTransaction,
-    startScan,
-    connectDevice,
+    checkNfcAvailability,
+    sendTransactionNFC,
+    receiveTransactionNFC,
+    startBluetoothScan,
+    connectBluetoothDevice,
     disconnectDevice,
-    sendTransaction,
+    sendTransactionBluetooth,
     acceptTransaction,
     rejectTransaction,
   } = useBluetoothNFC();
 
-  const [screen, setScreen] = useState<"mode" | "scan" | "connect" | "send" | "receive">("mode");
+  const [screen, setScreen] = useState<"mode" | "transport" | "scan" | "connect" | "send" | "receive">("mode");
+  const [transportMode, setTransportMode] = useState<TransportMode>("bluetooth");
   const [sendAmount, setSendAmount] = useState(1000);
   const [merchantName, setMerchantName] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState("");
 
+  // Initialiser NFC check au démarrage
+  useState(() => {
+    checkNfcAvailability();
+  });
+
+  // Mode: Choisir transport (NFC vs Bluetooth)
+  const handleChooseTransport = async (mode: TransportMode) => {
+    setTransportMode(mode);
+
+    if (mode === "nfc") {
+      setScreen("send");
+      setMessage("Préparation NFC...");
+    } else {
+      setScreen("scan");
+      await startBluetoothScan();
+    }
+  };
+
   // Mode: Envoyer de l'argent
   const handleSendMode = async () => {
-    setScreen("scan");
-    await startScan();
+    setScreen("transport");
   };
 
   // Sélectionner un appareil et se connecter
@@ -40,7 +64,7 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
     setMessage("Connexion à l'appareil...");
 
     try {
-      await connectDevice(device);
+      await connectBluetoothDevice(device);
       setMessage("✓ Connecté!");
       await new Promise((resolve) => setTimeout(resolve, 800));
       setScreen("send");
@@ -65,18 +89,13 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
       return;
     }
 
-    if (!connectedDevice) {
-      setMessage("Appareil non connecté");
-      return;
-    }
-
     setIsProcessing(true);
     setMessage("[1/4] Création de la transaction...");
 
     try {
       // Créer la transaction offline dans le backend Rust
       const tx = await createOfflineTransaction(
-        connectedDevice.id,
+        connectedDevice?.id || "nfc_peer",
         merchantName,
         sendAmount
       );
@@ -88,22 +107,17 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
       setMessage("[2/4] Signature cryptographique...");
       await new Promise((resolve) => setTimeout(resolve, 800));
 
-      // Préparer la transaction pour l'envoi
-      const p2pTx: P2PTransaction = {
-        id: tx.id,
-        senderWalletId: wallet?.id || "unknown",
-        receiverWalletId: connectedDevice.id,
-        amount: sendAmount,
-        signature: tx.signature,
-        timestamp: tx.timestamp,
-        status: "pending",
-      };
+      setMessage("[3/4] Transmission " + (transportMode === "nfc" ? "NFC" : "Bluetooth") + "...");
+      let sendResult: any = { success: false, message: "Unknown" };
 
-      setMessage("[3/4] Transmission Bluetooth/NFC...");
-      const sent = await sendTransaction(p2pTx);
+      if (transportMode === "nfc") {
+        sendResult = await sendTransactionNFC(connectedDevice?.id || "nfc_peer", sendAmount);
+      } else {
+        sendResult = await sendTransactionBluetooth(connectedDevice?.id || "bt_peer", sendAmount);
+      }
 
-      if (!sent) {
-        throw new Error("Erreur lors de la transmission");
+      if (!sendResult.success) {
+        throw new Error(sendResult.message || "Erreur lors de la transmission");
       }
 
       setMessage("[4/4] Confirmation de la transaction...");
@@ -132,10 +146,15 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
     setMessage("Acceptation en cours...");
 
     try {
-      await acceptTransaction(receivedTransaction);
-      setMessage("✓ Paiement reçu!");
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      setScreen("mode");
+      const result = await acceptTransaction();
+      if (result.success) {
+        setMessage("✓ Paiement reçu!");
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        setScreen("mode");
+      } else {
+        setMessage("✗ Erreur: " + result.message);
+        setIsProcessing(false);
+      }
     } catch (err: any) {
       setMessage("✗ Erreur: " + err.message);
       setIsProcessing(false);
@@ -148,10 +167,15 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
     setMessage("Rejet en cours...");
 
     try {
-      await rejectTransaction();
-      setMessage("✓ Paiement rejeté");
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      setScreen("mode");
+      const result = await rejectTransaction();
+      if (result.success) {
+        setMessage("✓ Paiement rejeté");
+        await new Promise((resolve) => setTimeout(resolve, 1200));
+        setScreen("mode");
+      } else {
+        setMessage("✗ Erreur: " + result.message);
+        setIsProcessing(false);
+      }
     } catch (err: any) {
       setMessage("✗ Erreur: " + err.message);
       setIsProcessing(false);
@@ -161,7 +185,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
   // ============ RENDU ============
 
   if (screen === "mode") {
-    // Sélection du mode: Envoyer ou Recevoir
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6">
         <button
@@ -177,7 +200,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
         </div>
 
         <div className="w-full max-w-md space-y-4">
-          {/* Bouton Envoyer */}
           <button
             onClick={handleSendMode}
             className="w-full glass-card-alt p-8 text-center hover:border-gold-royal hover:bg-opacity-20 transition-all"
@@ -187,7 +209,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
             <p className="text-gray-400 text-sm">Chercher et payer un proche</p>
           </button>
 
-          {/* Bouton Recevoir */}
           <button
             onClick={() => setScreen("receive")}
             className="w-full glass-card-alt p-8 text-center hover:border-neon-green hover:bg-opacity-20 transition-all"
@@ -198,7 +219,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
           </button>
         </div>
 
-        {/* Solde actuel */}
         <div className="absolute bottom-8 text-center">
           <p className="text-gray-500 text-sm mb-2">Solde Offline Disponible</p>
           <p className="text-3xl font-grotesk font-bold text-neon-green">
@@ -209,13 +229,65 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
     );
   }
 
+  if (screen === "transport") {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-6">
+        <button
+          onClick={() => setScreen("mode")}
+          className="absolute top-8 left-8 text-gray-400 hover:text-gold-royal transition-colors"
+        >
+          ← Retour
+        </button>
+
+        <div className="text-center mb-16">
+          <h1 className="text-3xl font-grotesk font-bold text-white mb-4">🚀 Choisir le Mode</h1>
+          <p className="text-gray-400 text-sm">Bluetooth ou NFC</p>
+        </div>
+
+        <div className="w-full max-w-md space-y-4">
+          <button
+            onClick={() => handleChooseTransport("bluetooth")}
+            className="w-full glass-card-alt p-8 text-center hover:border-gold-royal transition-all"
+          >
+            <div className="text-6xl mb-4">📡</div>
+            <h2 className="text-xl font-grotesk font-bold text-gold-royal mb-2">Bluetooth</h2>
+            <p className="text-gray-400 text-sm">Portée: ~100m • Fiable</p>
+          </button>
+
+          <button
+            onClick={() => nfcAvailable ? handleChooseTransport("nfc") : setMessage("NFC non disponible")}
+            disabled={!nfcAvailable}
+            className={`w-full glass-card-alt p-8 text-center transition-all ${
+              nfcAvailable
+                ? "hover:border-neon-green"
+                : "opacity-50 cursor-not-allowed"
+            }`}
+          >
+            <div className="text-6xl mb-4">📵</div>
+            <h2 className="text-xl font-grotesk font-bold text-neon-green mb-2">NFC</h2>
+            <p className="text-gray-400 text-sm">
+              {nfcAvailable ? "Portée: ~10cm • Rapide" : "Non disponible"}
+            </p>
+          </button>
+        </div>
+
+        {message && (
+          <div className="absolute bottom-8 w-full max-w-md px-6">
+            <div className="p-3 rounded-lg text-sm text-center font-grotesk bg-neon-orange bg-opacity-20 text-neon-orange">
+              {message}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (screen === "scan") {
-    // Scan d'appareils Bluetooth
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6">
         <button
           onClick={() => {
-            setScreen("mode");
+            setScreen("transport");
           }}
           className="absolute top-8 left-8 text-gray-400 hover:text-gold-royal transition-colors"
         >
@@ -241,7 +313,7 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
             <div className="glass-card-alt p-8 text-center">
               <p className="text-gray-400">Aucun appareil trouvé</p>
               <button
-                onClick={() => startScan()}
+                onClick={() => startBluetoothScan()}
                 className="mt-4 px-6 py-2 bg-gold-royal text-space-dark rounded-lg font-bold hover:bg-opacity-80 transition-all"
               >
                 Relancer la recherche
@@ -260,7 +332,7 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
                     <p className="font-grotesk font-bold text-white">{device.name}</p>
                     <p className="text-gray-500 text-xs mt-1">Signal: {device.rssi} dBm</p>
                   </div>
-                  <div className="text-2xl">{device.connected ? "✓" : "○"}</div>
+                  <div className="text-2xl">○</div>
                 </div>
               </button>
             ))
@@ -277,13 +349,12 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
   }
 
   if (screen === "send") {
-    // Formulaire d'envoi
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6">
         <button
           onClick={async () => {
             await disconnectDevice();
-            setScreen("scan");
+            setScreen(transportMode === "nfc" ? "transport" : "scan");
           }}
           className="absolute top-8 left-8 text-gray-400 hover:text-gold-royal transition-colors"
         >
@@ -291,14 +362,17 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
         </button>
 
         <div className="text-center mb-12">
-          <h1 className="text-3xl font-grotesk font-bold text-white mb-2">💰 Envoyer de l'Argent</h1>
-          <p className="text-gray-400 text-sm">
-            Connecté à: <span className="text-neon-green">{connectedDevice?.name}</span>
-          </p>
+          <h1 className="text-3xl font-grotesk font-bold text-white mb-2">
+            💰 Envoyer {transportMode === "nfc" ? "📵 NFC" : "📡 Bluetooth"}
+          </h1>
+          {connectedDevice && (
+            <p className="text-gray-400 text-sm">
+              Connecté à: <span className="text-neon-green">{connectedDevice.name}</span>
+            </p>
+          )}
         </div>
 
         <div className="w-full max-w-md space-y-6">
-          {/* Montant */}
           <div>
             <label className="text-gray-400 text-sm font-grotesk mb-2 block">Montant (FCFA)</label>
             <input
@@ -315,7 +389,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
             </p>
           </div>
 
-          {/* Nom du destinataire */}
           <div>
             <label className="text-gray-400 text-sm font-grotesk mb-2 block">Nom du Destinataire</label>
             <input
@@ -328,7 +401,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
             />
           </div>
 
-          {/* Résumé */}
           {sendAmount && merchantName && (
             <div className="glass-card-alt p-4 border-neon-green">
               <p className="text-gray-400 text-xs mb-2">RÉSUMÉ</p>
@@ -341,7 +413,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
             </div>
           )}
 
-          {/* Message de statut */}
           {message && (
             <div className={`p-3 rounded-lg text-sm text-center font-grotesk ${
               message.includes("✓") ? "bg-neon-green bg-opacity-20 text-neon-green" :
@@ -352,7 +423,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
             </div>
           )}
 
-          {/* Bouton Envoyer */}
           <button
             onClick={handleSendTransaction}
             disabled={isProcessing || !sendAmount || !merchantName}
@@ -366,7 +436,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
   }
 
   if (screen === "receive") {
-    // Mode réception
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6">
         <button
@@ -383,7 +452,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
 
         <div className="w-full max-w-md">
           {receivedTransaction ? (
-            // Transaction reçue
             <div className="glass-card-alt p-8 space-y-6">
               <div className="text-center">
                 <div className="text-6xl mb-4 animate-pulse">💰</div>
@@ -399,7 +467,7 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span className="text-gray-500">De:</span>
-                    <span className="text-white font-mono text-xs">{receivedTransaction.senderWalletId}</span>
+                    <span className="text-white font-mono text-xs">{receivedTransaction.sender_wallet_id}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-gray-500">Heure:</span>
@@ -435,7 +503,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
               )}
             </div>
           ) : (
-            // En attente
             <div className="glass-card-alt p-12 text-center space-y-6">
               <div className="inline-block">
                 <div className="text-8xl animate-pulse">📡</div>
@@ -446,16 +513,10 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
               </div>
 
               <button
-                onClick={() => {
-                  // Demo: simuler une transaction reçue
-                  setMessage("Paiement reçu!");
-                  setTimeout(() => setMessage(""), 2000);
-                  // Uncomment pour mode demo:
-                  // setReceivedTransaction(mockTx);
-                }}
+                onClick={() => receiveTransactionNFC()}
                 className="text-gold-royal text-xs hover:underline"
               >
-                [Demo: Simuler réception]
+                [Simuler réception NFC]
               </button>
             </div>
           )}
