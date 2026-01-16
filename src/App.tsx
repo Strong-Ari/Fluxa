@@ -6,6 +6,9 @@ import PaymentRadar from "./screens/PaymentRadar";
 import TransactionInProgress from "./screens/TransactionInProgress";
 import PaymentReceipt from "./screens/PaymentReceipt";
 import { Breadcrumb, NavBar } from "./components/Navigation";
+import { NetworkStatusBanner } from "./components/NetworkStatusBanner";
+import { DebugNetworkStatus } from "./components/DebugNetworkStatus";
+import { OnlineStatusProvider } from "./contexts/OnlineStatusContext";
 
 type ScreenType = "dashboard" | "vault" | "radar" | "transaction" | "receipt";
 
@@ -55,40 +58,44 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen pb-32 bg-gradient-to-br from-navy-deep via-space-dark to-space-dark overflow-x-hidden">
-      {/* Animated background elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-96 h-96 bg-gold-royal rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float"></div>
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-neon-green rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float" style={{ animationDelay: "2s" }}></div>
+    <OnlineStatusProvider>
+      <NetworkStatusBanner />
+      <DebugNetworkStatus />
+      <div className="min-h-screen pb-32 bg-gradient-to-br from-navy-deep via-space-dark to-space-dark overflow-x-hidden">
+        {/* Animated background elements */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-gold-royal rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float"></div>
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-neon-green rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float" style={{ animationDelay: "2s" }}></div>
+        </div>
+
+        {/* Breadcrumb Navigation */}
+        <Breadcrumb currentScreen={currentScreen} onNavigate={handleNavigate} />
+
+        {/* Screen Container */}
+        <div className="relative z-10">
+          {currentScreen === "dashboard" && (
+            <Dashboard onNavigate={handleNavigate} />
+          )}
+          {currentScreen === "vault" && (
+            <VaultScreen onNavigate={handleNavigate} />
+          )}
+          {currentScreen === "radar" && (
+            <PaymentRadar onNavigate={handleNavigate} />
+          )}
+          {currentScreen === "transaction" && (
+            <TransactionInProgress
+              data={transactionData}
+              onNavigate={handleNavigate}
+            />
+          )}
+          {currentScreen === "receipt" && (
+            <PaymentReceipt data={transactionData} onNavigate={handleNavigate} />
+          )}
+        </div>
+
+        {/* Bottom Navigation Bar */}
+        <NavBar currentScreen={currentScreen} onNavigate={handleNavigate} />
       </div>
-
-      {/* Breadcrumb Navigation */}
-      <Breadcrumb currentScreen={currentScreen} onNavigate={handleNavigate} />
-
-      {/* Screen Container */}
-      <div className="relative z-10">
-        {currentScreen === "dashboard" && (
-          <Dashboard onNavigate={handleNavigate} />
-        )}
-        {currentScreen === "vault" && (
-          <VaultScreen onNavigate={handleNavigate} />
-        )}
-        {currentScreen === "radar" && (
-          <PaymentRadar onNavigate={handleNavigate} />
-        )}
-        {currentScreen === "transaction" && (
-          <TransactionInProgress
-            data={transactionData}
-            onNavigate={handleNavigate}
-          />
-        )}
-        {currentScreen === "receipt" && (
-          <PaymentReceipt data={transactionData} onNavigate={handleNavigate} />
-        )}
-      </div>
-
-      {/* Bottom Navigation Bar */}
-      <NavBar currentScreen={currentScreen} onNavigate={handleNavigate} />
-    </div>
+    </OnlineStatusProvider>
   );
 }
