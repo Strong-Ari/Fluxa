@@ -1,30 +1,49 @@
 import { useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { useRustWallet } from "../hooks/useRustWallet";
 
 interface VaultScreenProps {
   onNavigate: (screen: string, data?: any) => void;
 }
 
 export default function VaultScreen({ onNavigate }: VaultScreenProps) {
+  const { wallet, transferToVault, transferFromVault, error } = useRustWallet();
   const [selectedAmount, setSelectedAmount] = useState(5000);
-  const [isSecuring, setIsSecuring] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [securityMessage, setSecurityMessage] = useState("");
-  const maxAmount = 25000;
+  const [mode, setMode] = useState<"secure" | "withdraw">("secure");
 
-  const handleSecure = async () => {
-    setIsSecuring(true);
-    setSecurityMessage("Initialisation du coffre...");
+  const maxAmount = mode === "secure"
+    ? (wallet?.online_balance ?? 25000)
+    : (wallet?.offline_balance ?? 15000);
+
+  const handleTransaction = async () => {
+    if (selectedAmount <= 0 || selectedAmount > maxAmount) {
+      setSecurityMessage("Montant invalide");
+      return;
+    }
+
+    setIsProcessing(true);
+    const isSecuring = mode === "secure";
+    setSecurityMessage(isSecuring ? "Initialisation du coffre..." : "Retrait du coffre...");
 
     try {
-      // Simulate calling Rust backend
+      // Simulate progress
       await new Promise((resolve) => setTimeout(resolve, 800));
-      setSecurityMessage("[1/3] Création de la clé Ed25519...");
+      setSecurityMessage(`[1/3] Création de la clé Ed25519...`);
 
       await new Promise((resolve) => setTimeout(resolve, 800));
-      setSecurityMessage("[2/3] Chiffrement du portefeuille local...");
+      setSecurityMessage(`[2/3] ${isSecuring ? "Chiffrement" : "Déchiffrement"} du portefeuille local...`);
 
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setSecurityMessage("[3/3] Synchronisation complète!");
+      // Call Rust backend
+      const success = isSecuring
+        ? await transferToVault(selectedAmount)
+        : await transferFromVault(selectedAmount);
+
+      if (!success) {
+        throw new Error(isSecuring ? "Secure transfer failed" : "Withdraw failed");
+      }
+
+      setSecurityMessage(`[3/3] Synchronisation complète!`);
 
       // Trigger haptic feedback if available
       if ("vibrate" in navigator) {
@@ -33,12 +52,12 @@ export default function VaultScreen({ onNavigate }: VaultScreenProps) {
 
       // Wait before transitioning
       await new Promise((resolve) => setTimeout(resolve, 1500));
-      setIsSecuring(false);
+      setIsProcessing(false);
       onNavigate("dashboard");
-    } catch (error) {
-      console.error("Erreur de sécurisation:", error);
-      setSecurityMessage("Erreur: Veuillez réessayer");
-      setIsSecuring(false);
+    } catch (err) {
+      console.error(`Erreur de transaction:`, err);
+      setSecurityMessage(error || "Erreur: Veuillez réessayer");
+      setIsProcessing(false);
     }
   };
 
@@ -56,8 +75,35 @@ export default function VaultScreen({ onNavigate }: VaultScreenProps) {
 
       {/* Title */}
       <div className="text-center mb-12 mt-8">
-        <h1 className="text-4xl font-grotesk font-bold text-white mb-2">Le Coffre</h1>
-        <p className="text-gray-400 text-sm">Sécurisez vos fonds hors ligne</p>
+        <h1 className="text-4xl font-grotesk font-bold text-white mb-4">Le Coffre</h1>
+
+        {/* Mode Toggle */}
+        <div className="flex gap-2 justify-center mb-4">
+          <button
+            onClick={() => { setMode("secure"); setSelectedAmount(5000); }}
+            className={`px-4 py-2 rounded-lg font-grotesk font-bold text-sm uppercase transition-all ${
+              mode === "secure"
+                ? "bg-gold-royal text-space-dark"
+                : "glass-card hover:border-gold-royal"
+            }`}
+          >
+            🔒 Sécuriser
+          </button>
+          <button
+            onClick={() => { setMode("withdraw"); setSelectedAmount(3000); }}
+            className={`px-4 py-2 rounded-lg font-grotesk font-bold text-sm uppercase transition-all ${
+              mode === "withdraw"
+                ? "bg-neon-green text-space-dark"
+                : "glass-card hover:border-neon-green"
+            }`}
+          >
+            💰 Retirer
+          </button>
+        </div>
+
+        <p className="text-gray-400 text-sm">
+          {mode === "secure" ? "Transférer du solde en ligne au coffre" : "Retirer du coffre vers le solde en ligne"}
+        </p>
       </div>
 
       {/* Vault Animation Container */}
@@ -73,7 +119,7 @@ export default function VaultScreen({ onNavigate }: VaultScreenProps) {
 
             {/* Center vault icon */}
             <div className="absolute inset-0 center">
-              <div className="text-5xl">{isSecuring ? "🔓" : "🔐"}</div>
+              <div className="text-5xl">{isProcessing ? (mode === "secure" ? "🔓" : "💸") : "🔐"}</div>
             </div>
 
             {/* Glow effect */}
@@ -84,7 +130,7 @@ export default function VaultScreen({ onNavigate }: VaultScreenProps) {
 
           {/* Status Text */}
           <p className="text-center text-sm text-gray-400 mb-8 font-grotesk tracking-wider">
-            {isSecuring ? "Sécurisation en cours..." : "Montant à sécuriser"}
+            {isProcessing ? (mode === "secure" ? "Sécurisation en cours..." : "Retrait en cours...") : "Montant"}
           </p>
 
           {/* Amount Display */}
@@ -93,6 +139,16 @@ export default function VaultScreen({ onNavigate }: VaultScreenProps) {
               {selectedAmount.toLocaleString()}
             </p>
             <p className="text-gray-400 text-sm uppercase tracking-widest">FCFA</p>
+          </div>
+
+          {/* Balance Info */}
+          <div className="text-center mb-8 text-xs text-gray-500">
+            <p>Disponible: {maxAmount.toLocaleString()} FCFA</p>
+            <p className="text-gray-600 text-xs mt-1">
+              {mode === "secure"
+                ? `Coffre: ${(wallet?.offline_balance ?? 0).toLocaleString()} FCFA`
+                : `En ligne: ${(wallet?.online_balance ?? 0).toLocaleString()} FCFA`}
+            </p>
           </div>
 
           {/* Progress Bar */}
@@ -107,7 +163,7 @@ export default function VaultScreen({ onNavigate }: VaultScreenProps) {
           </div>
 
           {/* Security Info */}
-          {isSecuring && (
+          {isProcessing && (
             <div className="w-full mb-6 space-y-2">
               <p className="font-mono text-xs text-neon-green animate-fade-in text-center">
                 {securityMessage}
@@ -118,7 +174,7 @@ export default function VaultScreen({ onNavigate }: VaultScreenProps) {
       </div>
 
       {/* Slider Control */}
-      {!isSecuring && (
+      {!isProcessing && (
         <div className="w-full max-w-md mb-12">
           <label className="block text-xs text-gray-400 uppercase tracking-widest mb-4">
             Ajustez le montant
@@ -140,15 +196,15 @@ export default function VaultScreen({ onNavigate }: VaultScreenProps) {
       )}
 
       {/* Quick Amount Buttons */}
-      {!isSecuring && (
+      {!isProcessing && (
         <div className="grid grid-cols-4 gap-2 w-full max-w-md mb-12">
-          {[2000, 5000, 10000, 15000].map((amount) => (
+          {(mode === "secure" ? [2000, 5000, 10000, 15000] : [1000, 3000, 5000, 10000]).map((amount) => (
             <button
               key={amount}
               onClick={() => setSelectedAmount(Math.min(amount, maxAmount))}
               className={`py-3 px-2 rounded-lg font-grotesk font-bold text-xs uppercase tracking-wider transition-all ${
                 selectedAmount === amount
-                  ? "bg-gold-royal text-space-dark"
+                  ? mode === "secure" ? "bg-gold-royal text-space-dark" : "bg-neon-green text-space-dark"
                   : "glass-card hover:border-gold-royal"
               }`}
             >
@@ -158,22 +214,28 @@ export default function VaultScreen({ onNavigate }: VaultScreenProps) {
         </div>
       )}
 
-      {/* Security Button */}
-      {!isSecuring && (
+      {/* Transaction Button */}
+      {!isProcessing && (
         <button
-          onClick={handleSecure}
-          disabled={isSecuring}
-          className="w-full max-w-md btn-neon mb-8"
+          onClick={handleTransaction}
+          disabled={isProcessing}
+          className={`w-full max-w-md mb-8 font-grotesk font-bold uppercase ${
+            mode === "secure"
+              ? "btn-neon"
+              : "bg-neon-green hover:bg-neon-green/90 text-space-dark px-8 py-4 rounded-lg transition-all"
+          }`}
         >
-          🔒 Sécuriser par Rust
+          {mode === "secure" ? "🔒 Sécuriser" : "💸 Retirer"}
         </button>
       )}
 
       {/* Info Card */}
       <div className="glass-card p-6 w-full max-w-md">
         <p className="text-xs text-gray-300 leading-relaxed space-y-2">
-          <span className="block font-grotesk font-bold text-neon-green mb-2">ℹ️ Sans Internet</span>
-          Seuls les fonds dans le coffre sont accessibles hors ligne. Vos transactions locales seront synchronisées avec le serveur dès la reconnexion.
+          <span className="block font-grotesk font-bold text-neon-green mb-2">ℹ️ {mode === "secure" ? "Sécurisation" : "Retrait"}</span>
+          {mode === "secure"
+            ? "Transférez vos fonds du solde en ligne au coffre local pour un accès hors ligne sécurisé."
+            : "Transférez vos fonds du coffre local au solde en ligne pour les synchroniser avec le serveur."}
         </p>
       </div>
     </div>

@@ -15,11 +15,12 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
 }) => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative">
-      {/* Back Button */}
+      {/* Back Button - Hidden on mobile (swipe gesture used instead) */}
       {onBack && (
         <button
           onClick={onBack}
-          className="absolute top-8 left-8 text-gray-400 hover:text-gold-royal transition-colors font-grotesk"
+          className="absolute top-8 left-8 text-gray-400 hover:text-gold-royal transition-colors font-grotesk hidden sm:block"
+          title="Ou faites un geste de glissement depuis la gauche"
         >
           ← Retour
         </button>

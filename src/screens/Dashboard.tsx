@@ -1,22 +1,27 @@
 import { useState } from "react";
+import { useRustWallet } from "../hooks/useRustWallet";
 
 interface DashboardProps {
   onNavigate: (screen: string, data?: any) => void;
 }
 
 export default function Dashboard({ onNavigate }: DashboardProps) {
+  const { wallet, loading, error } = useRustWallet();
   const [isCloudMode, setIsCloudMode] = useState(true);
-  const [onlineBalance] = useState(25000);
-  const [offlineBalance] = useState(15000);
+
+  const onlineBalance = wallet?.online_balance ?? 0;
+  const offlineBalance = wallet?.offline_balance ?? 0;
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6">
       {/* Header with Rust Security Indicator */}
       <div className="absolute top-8 mt-8 right-8 center gap-2">
-        <div className="animate-pulse">
-          <div className="w-3 h-3 rounded-full bg-neon-green"></div>
+        <div className={`${loading ? "animate-pulse" : ""}`}>
+          <div className={`w-3 h-3 rounded-full ${error ? "bg-red-500" : "bg-neon-green"}`}></div>
         </div>
-        <span className="text-xs font-grotesk text-neon-green uppercase tracking-wider">Mémoire Sécurisée</span>
+        <span className={`text-xs font-grotesk ${error ? "text-red-500" : "text-neon-green"} uppercase tracking-wider`}>
+          {error ? "Erreur" : "Mémoire Sécurisée"}
+        </span>
       </div>
 
       {/* Title */}

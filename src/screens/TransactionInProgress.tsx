@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useTransaction } from "../hooks/useTransaction";
 
 interface TransactionData {
   amount: number;
   merchantName?: string;
   merchantImage?: string;
+  transactionId?: string;
 }
 
 interface TransactionInProgressProps {
@@ -17,6 +19,7 @@ export default function TransactionInProgress({
   data,
   onNavigate,
 }: TransactionInProgressProps) {
+  const { confirmTx } = useTransaction();
   const [currentStep, setCurrentStep] = useState<Step>("crypto");
   const [progress, setProgress] = useState(0);
   const [allStepsComplete, setAllStepsComplete] = useState(false);
@@ -26,7 +29,7 @@ export default function TransactionInProgress({
     let currentStepIndex = 0;
     let currentProgress = 0;
 
-    const progressInterval = setInterval(() => {
+    const progressInterval = setInterval(async () => {
       currentProgress += Math.random() * 30;
 
       if (currentProgress >= 100) {
@@ -37,11 +40,17 @@ export default function TransactionInProgress({
           currentProgress = 0;
         } else {
           clearInterval(progressInterval);
+
+          // Confirm transaction with backend
+          if (data.transactionId) {
+            await confirmTx(data.transactionId);
+          }
+
           setAllStepsComplete(true);
           setTimeout(() => {
             onNavigate("receipt", {
               ...data,
-              transactionId: `TX-${Date.now()}`,
+              transactionId: data.transactionId || `TX-${Date.now()}`,
             });
           }, 2000);
           return;
@@ -52,7 +61,7 @@ export default function TransactionInProgress({
     }, 300);
 
     return () => clearInterval(progressInterval);
-  }, [data, onNavigate]);
+  }, [data, onNavigate, confirmTx]);
 
   const getStepMessage = (step: Step) => {
     switch (step) {

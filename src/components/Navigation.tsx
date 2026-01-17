@@ -1,4 +1,5 @@
-import { ScreenType, ROUTE_NAMES, getRouteUrl } from "../router/routes";
+import { ScreenType, ROUTE_NAMES } from "../router/routes";
+import { useOnlineStatusContext } from "../contexts/OnlineStatusContext";
 
 interface NavBarProps {
   currentScreen: ScreenType;
@@ -6,11 +7,12 @@ interface NavBarProps {
 }
 
 export const NavBar: React.FC<NavBarProps> = ({ currentScreen, onNavigate }) => {
-  const screens: ScreenType[] = ["dashboard", "vault", "radar"];
+  const screens: ScreenType[] = ["dashboard", "vault", "radar", "p2p"];
+  const { isOnline } = useOnlineStatusContext();
 
   return (
     <div className="fixed bottom-0 left-0 right-0 glass-card mx-4 mb-4 rounded-2xl border-t border-glass-border">
-      <div className="flex items-center justify-around py-4">
+      <div className="flex items-center justify-around py-4 relative">
         {screens.map((screen) => (
           <button
             key={screen}
@@ -26,14 +28,32 @@ export const NavBar: React.FC<NavBarProps> = ({ currentScreen, onNavigate }) => 
               {screen === "dashboard" && "🏠"}
               {screen === "vault" && "🔐"}
               {screen === "radar" && "🎯"}
+              {screen === "p2p" && "💳"}
             </span>
             <span className="text-xs font-grotesk font-bold hidden sm:inline">
               {screen === "dashboard" && "Home"}
               {screen === "vault" && "Vault"}
               {screen === "radar" && "Radar"}
+              {screen === "p2p" && "P2P"}
             </span>
           </button>
         ))}
+        {/* Online/Offline Indicator */}
+        <div
+          className={`absolute bottom-4 right-4 flex items-center gap-2 text-xs font-bold ${
+            isOnline ? "text-green-400" : "text-red-400"
+          }`}
+          title={isOnline ? "Connected" : "Offline"}
+        >
+          <span
+            className={`w-2 h-2 rounded-full ${
+              isOnline ? "bg-green-400" : "bg-red-400"
+            }`}
+          />
+          <span className="hidden sm:inline">
+            {isOnline ? "Online" : "Offline"}
+          </span>
+        </div>
       </div>
     </div>
   );
@@ -48,6 +68,8 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
   currentScreen,
   onNavigate,
 }) => {
+  const { isOnline } = useOnlineStatusContext();
+
   return (
     <div className="fixed top-8 left-8 flex items-center gap-2 text-sm">
       <button
@@ -64,6 +86,23 @@ export const Breadcrumb: React.FC<BreadcrumbProps> = ({
           </span>
         </>
       )}
+      {/* Network Status Badge */}
+      <div className="ml-auto flex items-center gap-2">
+        <div
+          className={`px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1 ${
+            isOnline
+              ? "bg-green-900 bg-opacity-30 text-green-400"
+              : "bg-red-900 bg-opacity-30 text-red-400 animate-pulse"
+          }`}
+        >
+          <span
+            className={`w-1.5 h-1.5 rounded-full ${
+              isOnline ? "bg-green-400" : "bg-red-400"
+            }`}
+          />
+          {isOnline ? "Connected" : "No Connection"}
+        </div>
+      </div>
     </div>
   );
 };
