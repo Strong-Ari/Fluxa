@@ -35,12 +35,10 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
   const [isProcessing, setIsProcessing] = useState(false);
   const [message, setMessage] = useState("");
 
-  // Initialiser NFC check au démarrage
   useState(() => {
     checkNfcAvailability();
   });
 
-  // Mode: Choisir transport (NFC vs Bluetooth)
   const handleChooseTransport = async (mode: TransportMode) => {
     setTransportMode(mode);
 
@@ -53,7 +51,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
     }
   };
 
-  // Mode: Envoyer de l'argent
   const handleSendMode = async () => {
     setScreen("transport");
   };
@@ -77,7 +74,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
     }
   };
 
-  // Envoyer une transaction P2P
   const handleSendTransaction = async () => {
     if (!sendAmount || sendAmount < 100) {
       setMessage("Montant minimum: 100 FCFA");
@@ -93,7 +89,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
     setMessage("[1/4] Création de la transaction...");
 
     try {
-      // Créer la transaction offline dans le backend Rust
       const tx = await createOfflineTransaction(
         connectedDevice?.id || "nfc_peer",
         merchantName,
@@ -126,7 +121,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
       setMessage("✓ Paiement envoyé avec succès!");
       await new Promise((resolve) => setTimeout(resolve, 1500));
 
-      // Réinitialiser et retourner
       setSendAmount(1000);
       setMerchantName("");
       await disconnectDevice();
@@ -161,7 +155,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
     }
   };
 
-  // Rejeter une transaction reçue
   const handleRejectTransaction = async () => {
     setIsProcessing(true);
     setMessage("Rejet en cours...");
@@ -181,8 +174,6 @@ export default function P2PPaymentScreen({ onNavigate }: P2PPaymentScreenProps) 
       setIsProcessing(false);
     }
   };
-
-  // ============ RENDU ============
 
   if (screen === "mode") {
     return (

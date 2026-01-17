@@ -42,30 +42,25 @@ export const useRustWallet = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  /// Initialize wallet on mount
   useEffect(() => {
     initWallet();
   }, []);
 
-  /// Initialize wallet with keys
   const initWallet = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
 
-      // Initialize wallet
       const walletRes = await invoke<ApiResponse<WalletData>>("init_wallet");
       if (walletRes.success && walletRes.data) {
         setWallet(walletRes.data);
       }
 
-      // Get public key
       const keyRes = await invoke<ApiResponse<string>>("get_public_key");
       if (keyRes.success && keyRes.data) {
         setPublicKey(keyRes.data);
       }
 
-      // Get transactions
       const txRes = await invoke<ApiResponse<TransactionData[]>>("get_transactions");
       if (txRes.success && txRes.data) {
         setTransactions(txRes.data);
@@ -79,7 +74,6 @@ export const useRustWallet = () => {
     }
   }, []);
 
-  /// Transfer to vault
   const transferToVault = useCallback(async (amount: number) => {
     try {
       setLoading(true);
@@ -105,7 +99,6 @@ export const useRustWallet = () => {
     }
   }, []);
 
-  /// Transfer from vault
   const transferFromVault = useCallback(async (amount: number) => {
     try {
       setLoading(true);
@@ -131,7 +124,6 @@ export const useRustWallet = () => {
     }
   }, []);
 
-  /// Create offline transaction (P2P)
   const createOfflineTransaction = useCallback(
     async (toWalletId: string, merchantName: string, amount: number) => {
       try {
@@ -166,7 +158,6 @@ export const useRustWallet = () => {
     []
   );
 
-  /// Create online transaction (server)
   const createOnlineTransaction = useCallback(
     async (toWalletId: string, merchantName: string, amount: number) => {
       try {
@@ -201,7 +192,6 @@ export const useRustWallet = () => {
     []
   );
 
-  /// Confirm transaction
   const confirmTransaction = useCallback(async (txId: string) => {
     try {
       setLoading(true);
@@ -229,7 +219,6 @@ export const useRustWallet = () => {
     }
   }, []);
 
-  /// Cancel transaction
   const cancelTransaction = useCallback(async (txId: string) => {
     try {
       setLoading(true);
@@ -258,7 +247,6 @@ export const useRustWallet = () => {
     }
   }, []);
 
-  /// Refresh wallet and transactions
   const refreshWallet = useCallback(async () => {
     try {
       const walletRes = await invoke<ApiResponse<WalletData>>("get_wallet");
@@ -275,7 +263,6 @@ export const useRustWallet = () => {
     }
   }, []);
 
-  /// Get wallet statistics
   const getStats = useCallback(async () => {
     try {
       const res = await invoke<ApiResponse<any>>("get_wallet_stats");

@@ -1,4 +1,6 @@
 {
+  // Code boilerplate généré avec l'assistance d'un LLM
+  // Ce fichier de configuration TypeScript pour Node.js contient du code standard généré par LLM
   "compilerOptions": {
     "composite": true,
     "skipLibCheck": true,

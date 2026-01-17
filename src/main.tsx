@@ -1,3 +1,7 @@
+// Code boilerplate généré avec l'assistance d'un LLM
+// Ce fichier d'entrée React contient du code standard généré par LLM
+// La logique du Service Worker a été adaptée manuellement pour les besoins du projet
+
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
