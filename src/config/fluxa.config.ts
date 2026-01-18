@@ -1,10 +1,4 @@
-/**
- * Fluxa Backend Configuration
- * Configuration centralisée pour tous les appels Rust/Tauri
- */
-
 export const FLUXA_CONFIG = {
-  // Commandes Tauri disponibles
   commands: {
     wallet: {
       init: "init_wallet",
@@ -29,14 +23,12 @@ export const FLUXA_CONFIG = {
     },
   },
 
-  // Validations
   validation: {
     minAmount: 100,
     maxAmount: 1000000,
-    timeout: 30000, // 30s
+    timeout: 30000,
   },
 
-  // Messages
   messages: {
     success: {
       transferToVault: "Fonds transférés au coffre avec succès",
@@ -54,7 +46,6 @@ export const FLUXA_CONFIG = {
     },
   },
 
-  // États
   transactionStatus: {
     PENDING: "pending",
     CONFIRMED: "confirmed",
@@ -67,66 +58,6 @@ export const FLUXA_CONFIG = {
     OFFLINE: "offline",
     TRANSFER: "transfer",
   },
-};
-
-/**
- * Exemples d'utilisation
- */
-export const EXAMPLES = {
-  // Exemple 1: Récupérer le wallet
-  getWallet: `
-    import { invoke } from "@tauri-apps/api/core";
-
-    const wallet = await invoke("get_wallet");
-    console.log(wallet.online_balance); // 25000
-  `,
-
-  // Exemple 2: Transfert au vault
-  transferToVault: `
-    import { invoke } from "@tauri-apps/api/core";
-
-    const result = await invoke("transfer_to_vault", { amount: 5000 });
-    console.log(result.offline_balance); // Augmenté de 5000
-  `,
-
-  // Exemple 3: Créer une transaction P2P
-  createOfflineTransaction: `
-    import { invoke } from "@tauri-apps/api/core";
-
-    const tx = await invoke("create_offline_transaction", {
-      to_wallet_id: "wallet_123",
-      merchant_name: "Chez Amenan",
-      amount: 2000
-    });
-    console.log(tx.signature); // Signature cryptographique
-  `,
-
-  // Exemple 4: Hook personnalisé
-  useWalletExample: `
-    import { useRustWallet } from "@/hooks/useRustWallet";
-
-    const MyComponent = () => {
-      const { wallet, loading, error, transferToVault } = useRustWallet();
-
-      const handleTransfer = async () => {
-        await transferToVault(5000);
-      };
-
-      return (
-        <div>
-          {loading && <p>Chargement...</p>}
-          {error && <p>{error}</p>}
-          {wallet && (
-            <>
-              <p>Online: {wallet.online_balance}</p>
-              <p>Offline: {wallet.offline_balance}</p>
-              <button onClick={handleTransfer}>Transférer</button>
-            </>
-          )}
-        </div>
-      );
-    };
-  `,
 };
 
 export default FLUXA_CONFIG;

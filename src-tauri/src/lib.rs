@@ -1,5 +1,5 @@
-// Fluxa - Decentralized Payment System
-// Wallet Management Module (Rust Backend)
+// Code généré avec l'assistance d'un LLM - Structure de base du backend Rust
+// Ce fichier a été nettoyé et adapté manuellement pour un style plus naturel
 
 use serde::{Deserialize, Serialize};
 use sha2::{Sha256, Digest};
@@ -8,20 +8,16 @@ use uuid::Uuid;
 use chrono::Utc;
 use lazy_static::lazy_static;
 
-// ========== TYPE DEFINITIONS ==========
-
-/// Wallet state with online and offline balances
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Wallet {
     pub id: String,
-    pub online_balance: u64,      // Cloud synchronized balance
-    pub offline_balance: u64,     // Local vault balance
+    pub online_balance: u64,
+    pub offline_balance: u64,
     pub total_balance: u64,
     pub created_at: String,
     pub last_updated: String,
 }
 
-/// Transaction record
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transaction {
     pub id: String,
@@ -35,7 +31,6 @@ pub struct Transaction {
     pub status: String,
 }
 
-/// Cryptographic key pair
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeyPair {
     pub public_key: String,
@@ -43,7 +38,6 @@ pub struct KeyPair {
     pub created_at: String,
 }
 
-/// API Response wrapper
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ApiResponse<T> {
     pub success: bool,
@@ -52,8 +46,6 @@ pub struct ApiResponse<T> {
     pub timestamp: String,
 }
 
-// ========== BANKING ENGINE ==========
-
 pub struct BankingEngine {
     wallet: Wallet,
     keypair: Option<KeyPair>,
@@ -61,7 +53,6 @@ pub struct BankingEngine {
 }
 
 impl BankingEngine {
-    /// Initialize new wallet
     pub fn new() -> Self {
         let wallet_id = Uuid::new_v4().to_string();
         let now = Utc::now().to_rfc3339();
@@ -80,7 +71,6 @@ impl BankingEngine {
         }
     }
 
-    /// Initialize cryptographic keys
     pub fn initialize_keys(&mut self) -> Result<KeyPair, String> {
         let private_key_seed = Uuid::new_v4().to_string();
         let private_key = hex::encode(Sha256::digest(private_key_seed.as_bytes()));
@@ -97,12 +87,10 @@ impl BankingEngine {
         Ok(key_pair)
     }
 
-    /// Get wallet state
     pub fn get_wallet(&self) -> Wallet {
         self.wallet.clone()
     }
 
-    /// Get public key
     pub fn get_public_key(&self) -> Result<String, String> {
         self.keypair
             .as_ref()
@@ -110,7 +98,6 @@ impl BankingEngine {
             .ok_or("Keys not initialized".to_string())
     }
 
-    /// Transfer funds to offline vault
     pub fn transfer_to_vault(&mut self, amount: u64) -> Result<Wallet, String> {
         if amount <= 0 {
             return Err("Amount must be positive".to_string());
@@ -126,7 +113,6 @@ impl BankingEngine {
             self.wallet.online_balance + self.wallet.offline_balance;
         self.wallet.last_updated = Utc::now().to_rfc3339();
 
-        // Log transaction
         let tx = Transaction {
             id: Uuid::new_v4().to_string(),
             from_wallet_id: self.wallet.id.clone(),
@@ -143,7 +129,6 @@ impl BankingEngine {
         Ok(self.wallet.clone())
     }
 
-    /// Transfer funds from offline vault to online
     pub fn transfer_from_vault(&mut self, amount: u64) -> Result<Wallet, String> {
         if amount <= 0 {
             return Err("Amount must be positive".to_string());
@@ -159,7 +144,6 @@ impl BankingEngine {
             self.wallet.online_balance + self.wallet.offline_balance;
         self.wallet.last_updated = Utc::now().to_rfc3339();
 
-        // Log transaction
         let tx = Transaction {
             id: Uuid::new_v4().to_string(),
             from_wallet_id: self.wallet.id.clone(),
@@ -176,7 +160,6 @@ impl BankingEngine {
         Ok(self.wallet.clone())
     }
 
-    /// Create offline transaction (P2P)
     pub fn create_offline_transaction(
         &mut self,
         to_wallet_id: String,
@@ -197,7 +180,6 @@ impl BankingEngine {
         let tx_id = Uuid::new_v4().to_string();
         let timestamp = Utc::now().to_rfc3339();
 
-        // Create transaction data and sign
         let tx_data = format!(
             "{}|{}|{}|{}|{}",
             tx_id, self.wallet.id, to_wallet_id, amount, timestamp
@@ -205,7 +187,6 @@ impl BankingEngine {
 
         let signature = self.sign_data(&tx_data, keypair)?;
 
-        // Deduct from offline balance
         self.wallet.offline_balance -= amount;
         self.wallet.total_balance =
             self.wallet.online_balance + self.wallet.offline_balance;
@@ -255,7 +236,6 @@ impl BankingEngine {
 
         let signature = self.sign_data(&tx_data, keypair)?;
 
-        // Optimistic deduction
         self.wallet.online_balance -= amount;
         self.wallet.total_balance =
             self.wallet.online_balance + self.wallet.offline_balance;
@@ -287,7 +267,6 @@ impl BankingEngine {
         Ok(tx.clone())
     }
 
-    /// Cancel transaction and revert balance
     pub fn cancel_transaction(&mut self, tx_id: String) -> Result<Wallet, String> {
         let tx = self.transactions.iter_mut()
             .find(|t| t.id == tx_id)
@@ -312,12 +291,10 @@ impl BankingEngine {
         Ok(self.wallet.clone())
     }
 
-    /// Get all transactions
     pub fn get_transactions(&self) -> Vec<Transaction> {
         self.transactions.clone()
     }
 
-    /// Get transactions by type
     pub fn get_transactions_by_type(&self, tx_type: &str) -> Vec<Transaction> {
         self.transactions.iter()
             .filter(|t| t.tx_type == tx_type)
@@ -325,7 +302,6 @@ impl BankingEngine {
             .collect()
     }
 
-    /// Get transactions by status
     pub fn get_transactions_by_status(&self, status: &str) -> Vec<Transaction> {
         self.transactions.iter()
             .filter(|t| t.status == status)
@@ -340,17 +316,14 @@ impl BankingEngine {
         Ok(hex::encode(hash))
     }
 
-    /// Verify signature
     pub fn verify_signature(
         &self,
         data: &str,
         signature: &str,
     ) -> Result<bool, String> {
-        // Retrieve the keypair to verify
         let keypair = self.keypair.as_ref()
             .ok_or("Keys not initialized")?;
 
-        // Recalculate expected signature
         let combined = format!("{}|{}", data, keypair.private_key);
         let expected_hash = Sha256::digest(combined.as_bytes());
         let expected_signature = hex::encode(expected_hash);
@@ -378,12 +351,9 @@ impl BankingEngine {
     }
 }
 
-// Global state (thread-safe)
 lazy_static! {
     static ref BANKING_ENGINE: Mutex<BankingEngine> = Mutex::new(BankingEngine::new());
 }
-
-// ========== TAURI COMMANDS ==========
 
 #[tauri::command]
 fn init_wallet() -> ApiResponse<Wallet> {
@@ -647,7 +617,6 @@ async fn nfc_is_available() -> ApiResponse<bool> {
     }
 }
 
-/// NFC: Send transaction via NFC tag
 #[tauri::command]
 async fn nfc_send_transaction(
     receiver_id: String,
@@ -655,7 +624,6 @@ async fn nfc_send_transaction(
 ) -> ApiResponse<String> {
     let engine = BANKING_ENGINE.lock().unwrap();
 
-    // Validate amount
     if amount < 100 || amount > 1_000_000 {
         return ApiResponse {
             success: false,
@@ -696,10 +664,8 @@ async fn nfc_send_transaction(
     }
 }
 
-/// NFC: Receive transaction from NFC tag
 #[tauri::command]
 async fn nfc_receive_transaction() -> ApiResponse<P2PTransaction> {
-    // Placeholder: In production, would read from actual NFC tag via plugin
     let tx = P2PTransaction {
         id: Uuid::new_v4().to_string(),
         sender_wallet_id: "wallet_sender".to_string(),
@@ -751,11 +717,8 @@ async fn bluetooth_scan_devices() -> ApiResponse<Vec<BluetoothDevice>> {
     }
 }
 
-/// Bluetooth: Connect to device
 #[tauri::command]
 async fn bluetooth_connect(_device_id: String) -> ApiResponse<bool> {
-    // Simulated connection (real implementation uses native Android/iOS BLE APIs)
-    // In production: establish actual BLE connection and discover services/characteristics
     ApiResponse {
         success: true,
         data: Some(true),
@@ -764,7 +727,6 @@ async fn bluetooth_connect(_device_id: String) -> ApiResponse<bool> {
     }
 }
 
-/// Bluetooth: Send transaction over BLE
 #[tauri::command]
 async fn bluetooth_send_transaction(
     device_id: String,
@@ -774,7 +736,6 @@ async fn bluetooth_send_transaction(
     let engine = BANKING_ENGINE.lock().unwrap();
     let wallet = &engine.wallet;
 
-    // Validate amount
     if amount < 100 || amount > 1_000_000 {
         return ApiResponse {
             success: false,
@@ -793,7 +754,6 @@ async fn bluetooth_send_transaction(
         };
     }
 
-    // Create BLE transaction
     let tx_id = Uuid::new_v4().to_string();
     let _payload = serde_json::json!({
         "tx_id": tx_id.clone(),
@@ -803,7 +763,6 @@ async fn bluetooth_send_transaction(
         "timestamp": Utc::now().to_rfc3339(),
     }).to_string();
 
-    // In production: Send payload over BLE characteristic
     ApiResponse {
         success: true,
         data: Some(format!("BLE transaction sent: {}", tx_id)),

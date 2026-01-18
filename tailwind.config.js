@@ -1,3 +1,7 @@
+// Code boilerplate généré avec l'assistance d'un LLM
+// Ce fichier de configuration Tailwind CSS contient du code standard généré par LLM
+// Les couleurs personnalisées et animations ont été adaptées manuellement pour le projet
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: [

@@ -1,3 +1,6 @@
+// Code boilerplate généré avec l'assistance d'un LLM
+// Ce fichier de configuration Vite pour Tauri contient du code standard généré par LLM
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 

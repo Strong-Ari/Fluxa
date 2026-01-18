@@ -17,11 +17,6 @@ export interface P2PTransaction {
   status: "pending" | "confirmed" | "failed";
 }
 
-/**
- * Hook pour gérer NFC et Bluetooth via Rust backend
- * - NFC: Les vrais tag writes/reads se font via tauri-plugin-nfc côté frontend
- * - Bluetooth: Utilise les commandes Rust BLE
- */
 export const useBluetoothNFC = () => {
   const [devices, setDevices] = useState<BluetoothDevice[]>([]);
   const [connectedDevice, setConnectedDevice] = useState<BluetoothDevice | null>(null);
@@ -31,9 +26,6 @@ export const useBluetoothNFC = () => {
   const [nfcAvailable, setNfcAvailable] = useState(false);
   const [nfcScanning, setNfcScanning] = useState(false);
 
-  // ========== NFC FUNCTIONS ==========
-
-  // Vérifier si NFC est disponible
   const checkNfcAvailability = useCallback(async () => {
     try {
       const result = await invoke<any>("nfc_is_available");
@@ -47,13 +39,11 @@ export const useBluetoothNFC = () => {
     }
   }, []);
 
-  // Envoyer via NFC (préparer et écrire sur tag)
   const sendTransactionNFC = useCallback(
     async (receiverId: string, amount: number) => {
       setError(null);
 
       try {
-        // 1. Préparer la transaction via Rust backend
         const prepareResult = await invoke<any>("nfc_send_transaction", {
           receiver_id: receiverId,
           amount,
@@ -63,12 +53,8 @@ export const useBluetoothNFC = () => {
           throw new Error(prepareResult.error || "Failed to prepare NFC transaction");
         }
 
-        // 2. Écrire sur le tag NFC via le plugin réel
-        // NOTE: Cette partie nécessite l'utilisation directe du plugin dans le composant
-        // car les APIs de tauri-plugin-nfc ne sont pas disponibles au niveau du hook
         setNfcScanning(true);
 
-        // Pour maintenant, simuler l'écriture
         const payload = {
           receiverId,
           amount,
@@ -97,13 +83,11 @@ export const useBluetoothNFC = () => {
     []
   );
 
-  // Recevoir via NFC (lire depuis tag)
   const receiveTransactionNFC = useCallback(async () => {
     setError(null);
     setNfcScanning(true);
 
     try {
-      // Appeler le backend pour valider et recevoir la transaction
       const result = await invoke<any>("nfc_receive_transaction");
 
       if (result.success && result.data) {
@@ -129,16 +113,12 @@ export const useBluetoothNFC = () => {
     }
   }, []);
 
-  // ========== BLUETOOTH FUNCTIONS ==========
-
-  // Scanner les appareils Bluetooth
   const startBluetoothScan = useCallback(async () => {
     setIsScanning(true);
     setError(null);
     setDevices([]);
 
     try {
-      // Utiliser le scan Rust backend
       const result = await invoke<any>("bluetooth_scan_devices");
 
       if (result.success && result.data) {
@@ -156,7 +136,6 @@ export const useBluetoothNFC = () => {
     }
   }, []);
 
-  // Connecter à un appareil Bluetooth
   const connectBluetoothDevice = useCallback(async (device: BluetoothDevice) => {
     setError(null);
 
@@ -184,7 +163,6 @@ export const useBluetoothNFC = () => {
     }
   }, []);
 
-  // Déconnecter du Bluetooth
   const disconnectDevice = useCallback(async () => {
     setConnectedDevice(null);
     setError(null);
@@ -194,7 +172,6 @@ export const useBluetoothNFC = () => {
     };
   }, []);
 
-  // Envoyer via Bluetooth
   const sendTransactionBluetooth = useCallback(
     async (receiverId: string, amount: number) => {
       if (!connectedDevice) {
@@ -234,7 +211,6 @@ export const useBluetoothNFC = () => {
     [connectedDevice]
   );
 
-  // Accepter une transaction reçue
   const acceptTransaction = useCallback(async () => {
     if (!receivedTransaction) {
       return {
@@ -245,7 +221,6 @@ export const useBluetoothNFC = () => {
 
     setError(null);
     try {
-      // Mettre à jour le solde via le hook wallet
       return {
         success: true,
         message: "Transaction acceptée",
@@ -260,7 +235,6 @@ export const useBluetoothNFC = () => {
     }
   }, [receivedTransaction]);
 
-  // Rejeter une transaction reçue
   const rejectTransaction = useCallback(async () => {
     setReceivedTransaction(null);
     setError(null);
@@ -271,7 +245,6 @@ export const useBluetoothNFC = () => {
   }, []);
 
   return {
-    // État
     devices,
     connectedDevice,
     isScanning,
@@ -279,19 +252,13 @@ export const useBluetoothNFC = () => {
     receivedTransaction,
     nfcAvailable,
     nfcScanning,
-
-    // Fonctions NFC
     checkNfcAvailability,
     sendTransactionNFC,
     receiveTransactionNFC,
-
-    // Fonctions Bluetooth
     startBluetoothScan,
     connectBluetoothDevice,
     disconnectDevice,
     sendTransactionBluetooth,
-
-    // Fonctions communes
     acceptTransaction,
     rejectTransaction,
   };

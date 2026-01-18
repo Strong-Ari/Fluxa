@@ -1,21 +1,13 @@
 import { invoke } from "@tauri-apps/api/core";
 
-/**
- * Wrapper sécurisé pour les appels Tauri
- * Gère les erreurs et les timeouts automatiquement
- */
-
 interface InvokeOptions {
   timeout?: number;
   retry?: number;
 }
 
-const DEFAULT_TIMEOUT = 30000; // 30 secondes
-const DEFAULT_RETRY = 1; // 1 tentative par défaut
+const DEFAULT_TIMEOUT = 30000;
+const DEFAULT_RETRY = 1;
 
-/**
- * Invoke avec gestion d'erreur et timeout
- */
 export async function invokeCommand<T>(
   command: string,
   args?: Record<string, any>,
@@ -27,7 +19,6 @@ export async function invokeCommand<T>(
 
   for (let attempt = 0; attempt < retry; attempt++) {
     try {
-      // Créer une promesse avec timeout
       const invokePromise = invoke<T>(command, args);
 
       const timeoutPromise = new Promise<never>((_, reject) =>
@@ -42,12 +33,10 @@ export async function invokeCommand<T>(
     } catch (error) {
       lastError = error as Error;
 
-      // Si c'est la dernière tentative, lancer l'erreur
       if (attempt === retry - 1) {
         throw lastError;
       }
 
-      // Attendre avant de réessayer (backoff exponentiel)
       await new Promise((resolve) =>
         setTimeout(resolve, Math.pow(2, attempt) * 1000)
       );
@@ -57,12 +46,7 @@ export async function invokeCommand<T>(
   throw lastError;
 }
 
-/**
- * Helpers spécialisés pour chaque type d'appel
- */
-
 export const rustWalletAPI = {
-  // Wallet operations
   async getWallet() {
     return invokeCommand<any>("get_wallet");
   },
@@ -75,7 +59,6 @@ export const rustWalletAPI = {
     return invokeCommand<any>("get_wallet_stats");
   },
 
-  // Keys
   async initializeKeys() {
     return invokeCommand<any>("initialize_keys");
   },
@@ -84,7 +67,6 @@ export const rustWalletAPI = {
     return invokeCommand<string>("get_public_key");
   },
 
-  // Transfers
   async transferToVault(amount: number) {
     return invokeCommand<any>("transfer_to_vault", { amount });
   },
@@ -93,7 +75,6 @@ export const rustWalletAPI = {
     return invokeCommand<any>("transfer_from_vault", { amount });
   },
 
-  // Transactions
   async createOfflineTransaction(
     toWalletId: string,
     merchantName: string,
@@ -135,10 +116,6 @@ export const rustWalletAPI = {
   },
 };
 
-/**
- * Validation et utilitaires
- */
-
 export function validateAmount(amount: number, min = 100, max = 1000000): string | null {
   if (!Number.isInteger(amount) || amount <= 0) {
     return "Amount must be a positive integer";
@@ -174,10 +151,6 @@ export function validateMerchantName(name: string): string | null {
   }
   return null;
 }
-
-/**
- * Helpers de formatage
- */
 
 export const formatters = {
   formatCurrency: (amount: number): string => {
@@ -219,10 +192,6 @@ export const formatters = {
     }
   },
 };
-
-/**
- * Gestion des erreurs personnalisées
- */
 
 export class FluxaError extends Error {
   constructor(

@@ -29,24 +29,20 @@ export default function App() {
     amount: 0,
   });
 
-  // Swipe back gesture
   const { swipeProgress } = useSwipeBack({
     threshold: 80,
     velocityThreshold: 0.3,
     onSwipeBack: () => {
-      // Go back to dashboard from any screen
       if (currentScreen !== "dashboard") {
         handleNavigate("dashboard");
       }
     },
   });
 
-  // Initialize route from URL hash and listen for changes
   useEffect(() => {
     const updateScreenFromHash = () => {
-      const hash = window.location.hash.slice(1); // Remove the #
+      const hash = window.location.hash.slice(1);
 
-      // Map hash routes to screen types
       const routeMap: Record<string, ScreenType> = {
         "": "dashboard",
         "/": "dashboard",
@@ -70,7 +66,6 @@ export default function App() {
   const handleNavigate = (screen: string, data?: TransactionData) => {
     if (data) setTransactionData(data);
     setCurrentScreen(screen as ScreenType);
-    // Update URL with proper hash route
     window.location.hash = screen === "dashboard" ? "/" : `/${screen}`;
   };
 
@@ -81,16 +76,13 @@ export default function App() {
         <DebugNetworkStatus />
         <SwipeBackOverlay progress={swipeProgress} />
         <div className="min-h-screen pb-32 bg-gradient-to-br from-navy-deep via-space-dark to-space-dark overflow-x-hidden">
-          {/* Animated background elements */}
           <div className="fixed inset-0 overflow-hidden pointer-events-none">
             <div className="absolute top-0 left-0 w-96 h-96 bg-gold-royal rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float"></div>
             <div className="absolute bottom-0 right-0 w-96 h-96 bg-neon-green rounded-full mix-blend-multiply filter blur-3xl opacity-10 animate-float" style={{ animationDelay: "2s" }}></div>
           </div>
 
-          {/* Breadcrumb Navigation */}
           <Breadcrumb currentScreen={currentScreen} onNavigate={handleNavigate} />
 
-          {/* Screen Container */}
           <div className="relative z-10">
             {currentScreen === "dashboard" && (
               <Dashboard onNavigate={handleNavigate} />
@@ -115,7 +107,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Bottom Navigation Bar */}
           <NavBar currentScreen={currentScreen} onNavigate={handleNavigate} />
         </div>
       </OnlineStatusProvider>
