@@ -98,6 +98,7 @@ Project developed for the **Rust Africa Hackathon 2026**.
 * **Track:** Fintech & Inclusive Finance
 * **Members:**
     * Ariel BLE - Lead Developer
+    * Aquilas ECHICOUA - Co-worker
 
 ---
 
