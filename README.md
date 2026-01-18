@@ -44,7 +44,6 @@ Fluxa introduces a secure asynchronous payment protocol:
 
 ## Code base
 
->>>>>>> 43343914c1d721f8b183e58fa70b0eddef41ef3c
 ```
 fluxa/
 ├── src/                    # Frontend React
@@ -63,7 +62,6 @@ fluxa/
 │
 └── public/                # Assets statiques
 ```
-<<<<<<< HEAD
 ---
 ## Why Rust? (The Core of the Project)
 
