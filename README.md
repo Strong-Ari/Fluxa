@@ -42,6 +42,29 @@ Fluxa introduces a secure asynchronous payment protocol:
 
 ---
 
+## Code base
+
+>>>>>>> 43343914c1d721f8b183e58fa70b0eddef41ef3c
+```
+fluxa/
+├── src/                    # Frontend React
+│   ├── components/         # Composants réutilisables
+│   ├── screens/           # Écrans principaux
+│   ├── hooks/             # Hooks React personnalisés
+│   ├── contexts/          # Contextes React
+│   ├── utils/             # Utilitaires
+│   └── config/            # Configuration
+│
+├── src-tauri/             # Backend Rust (Tauri)
+│   ├── src/
+│   │   ├── lib.rs         # Moteur bancaire principal
+│   │   └── main.rs        # Point d'entrée Tauri
+│   └── Cargo.toml         # Dépendances Rust
+│
+└── public/                # Assets statiques
+```
+<<<<<<< HEAD
+---
 ## Why Rust? (The Core of the Project)
 
 The use of Rust is strategic to guarantee financial reliability on mobile devices:
