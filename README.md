@@ -4,6 +4,8 @@
 
 Fluxa est une application de paiement peer-to-peer (P2P) fonctionnant entièrement hors-ligne, permettant aux utilisateurs d'échanger de l'argent sans connexion internet via NFC et Bluetooth Low Energy (BLE).
 
+#RustAfricaHackathon
+
 ## 📋 Problème Adressé
 
 Dans de nombreuses régions, notamment en Afrique de l'Ouest, l'accès à internet est limité, intermittent ou coûteux. Les solutions de paiement mobile existantes nécessitent une connexion internet constante pour valider les transactions, ce qui exclut une grande partie de la population.
@@ -334,5 +336,5 @@ Pour toute question ou problème, veuillez ouvrir une issue sur GitHub.
 
 ---
 
-**Date de soumission** : 18 janvier 2026  
+**Date de soumission** : 31 janvier 2026
 **Version** : 0.1.0
