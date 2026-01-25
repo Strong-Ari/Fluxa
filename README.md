@@ -1,4 +1,4 @@
-# Fluxa - Système de Paiement Hors-Ligne (Offline P2P)
+# 🌀 Fluxa | Hybrid Offline P2P Payment System
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -259,60 +259,59 @@ fluxa/
 │
 └── public/                # Assets statiques
 ```
+---
+## Why Rust? (The Core of the Project)
 
-## 🔧 Configuration
+The use of Rust is strategic to guarantee financial reliability on mobile devices:
 
-### Variables d'Environnement
+* **Memory Safety:** Indispensable for avoiding crashes and critical security flaws when handling money.
+* **Robust Cryptography:** Use of the `ed25519-dalek` crate to sign transactions. It is impossible to forge a digital check.
+* **Performance & Size:** Thanks to Rust and Tauri, the application is extremely lightweight (~10 MB) and fast, even on entry-level smartphones, unlike Electron-based solutions.
 
-Aucune variable d'environnement n'est requise pour le fonctionnement de base.
+---
 
-### Personnalisation
+## Tech Stack
 
-Les configurations sont centralisées dans :
-- `src/config/fluxa.config.ts` : Configuration frontend
-- `src-tauri/tauri.conf.json` : Configuration Tauri
+| Layer | Technology | Role |
+| :--- | :--- | :--- |
+| **Mobile Backend** | **Rust** | Business Logic, Cryptography, BLE Management |
+| **Mobile Bridge** | **Tauri v2** | Native Android/iOS Communication |
+| **Frontend** | **React / TypeScript** | User Interface (Radar, Wallet) |
+| **Storage** | **SQLite** | Encrypted Local Database |
+| **Protocol** | **BLE (Bluetooth)** | P2P Data Transfer |
 
-## 🧪 Tests
+---
 
-```bash
-# Tests frontend (à implémenter)
-pnpm test
+## Installation and Setup
 
-# Tests Rust
-cd src-tauri
-cargo test
-```
+### Prerequisites
+* Rust (latest stable version)
+* Node.js & pnpm
+* Android Studio (for mobile deployment)
 
-## 📄 Licence
+### Steps
+1.  **Clone the repository:**
+    ```bash
+    git clone [https://github.com/Strong-Ari/Fluxa.git](https://github.com/Strong-Ari/Fluxa.git)
+    cd Fluxa
+    ```
 
-Ce projet est sous licence MIT. Voir le fichier [LICENSE](LICENSE) pour plus de détails.
+2.  **Install dependencies:**
+    ```bash
+    pnpm install
+    ```
 
-## 👥 Auteurs
+3.  **Run in development mode (Android):**
+    * Plug in your Android phone and enable developer mode.
+    * Run:
+    ```bash
+    pnpm tauri android dev
+    ```
 
-- **Blé Ariel Josaphat** - Développement initial
+---
 
-## 🙏 Remerciements
-
-- Tauri pour le framework cross-platform
-- React et TypeScript pour le frontend
-- La communauté Rust pour les excellentes crates
-
-## 📝 Déclaration de Code Généré par LLM
-
-Ce projet contient du code boilerplate généré avec l'assistance d'un LLM (Large Language Model). Les fichiers suivants incluent du code généré par LLM et sont marqués avec des commentaires appropriés :
-
-### Fichiers de Configuration Boilerplate
-- `vite.config.ts` - Configuration Vite pour Tauri
-- `tailwind.config.js` - Configuration Tailwind CSS
-- `tsconfig.json` - Configuration TypeScript
-- `tsconfig.node.json` - Configuration TypeScript pour les fichiers Node.js
-- `postcss.config.js` - Configuration PostCSS
-- `package.json` - Dépendances et scripts du projet
-- `index.html` - Fichier HTML de base
-- `src/main.tsx` - Point d'entrée React avec configuration Service Worker
-
-### Code Boilerplate et Backend Rust
-- `src-tauri/src/lib.rs` - **Module backend Rust principal** : Ce fichier contient du code généré avec l'assistance d'un LLM, notamment les fonctions P2P NFC/Bluetooth.
+## 👥 The Team
+Project developed for the **Rust Africa Hackathon 2026**.
 
 **Note importante** : Le code métier principal, la logique applicative, et les fonctionnalités spécifiques au domaine ont été développés manuellement. Seuls les fichiers de configuration standard, le code boilerplate initial, et la structure de base du backend Rust ont bénéficié de l'assistance LLM.
 
